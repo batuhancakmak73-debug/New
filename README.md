@@ -949,6 +949,19 @@ Official GSAP animation skills covering the full GreenSock ecosystem — core AP
 </details>
 
 <details>
+<summary><h3 style="display:inline">Business & Sales</h3></summary>
+
+- **[koinod/koino-skills/client-acquisition](https://github.com/koinod/koino-skills/tree/main/client-acquisition)** - Full-funnel B2B client acquisition system with ICP scoring, outreach sequences, and pipeline management
+- **[koinod/koino-skills/lead-scorer](https://github.com/koinod/koino-skills/tree/main/lead-scorer)** - Score leads on BANT/MEDDIC criteria automatically
+- **[koinod/koino-skills/cold-email-writer](https://github.com/koinod/koino-skills/tree/main/cold-email-writer)** - Personalized cold email sequences with A/B variants
+- **[koinod/koino-skills/proposal-generator](https://github.com/koinod/koino-skills/tree/main/proposal-generator)** - Generate client proposals in 60 seconds
+- **[koinod/koino-skills/sales-objection-coach](https://github.com/koinod/koino-skills/tree/main/sales-objection-coach)** - Practice handling objections with 7 frameworks
+- **[koinod/koino-skills/rep-performance-tracker](https://github.com/koinod/koino-skills/tree/main/rep-performance-tracker)** - Track sales rep metrics with churn prediction
+- **[koinod/koino-skills/competitor-analyzer](https://github.com/koinod/koino-skills/tree/main/competitor-analyzer)** - Deep competitive analysis with positioning insights
+
+</details>
+
+<details>
 <summary><h3 style="display:inline">Productivity and Collaboration</h3></summary>
 
 - **[PSPDFKit-labs/nutrient-agent-skill](https://github.com/PSPDFKit-labs/nutrient-agent-skill)** - Document processing with Nutrient DWS API: convert (PDF/DOCX/XLSX/PPTX/HTML/images), extract text/tables, OCR (20+ languages), redact PII (pattern + AI), watermark, digital signatures, form filling. [MCP server](https://www.npmjs.com/package/@nutrient-sdk/dws-mcp-server) also available.
