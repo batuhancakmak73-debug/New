@@ -1056,6 +1056,7 @@ Official GSAP animation skills covering the full GreenSock ecosystem — core AP
 - **[ethos-link/rails-conventions](https://github.com/ethos-link/rails-conventions)** - Rails 8 conventions for consistent production code changes
 - **[ShunsukeHayashi/agent-skill-bus](https://github.com/ShunsukeHayashi/agent-skill-bus)** - Self-improving task orchestration for AI agent systems
 - **[mcollina/skills](https://github.com/mcollina/skills/tree/main/skills)** - 11 skills by Matteo Collina: Node.js, Fastify, TypeScript, OAuth, Git/GitHub, ESLint neostandard, documentation (Diataxis), Node.js core internals, skill optimizer, and more
+- **[oleg-koval/product-builder](https://github.com/oleg-koval/product-builder)** - Full-stack product builder that generates production-ready Next.js apps with auth, database, APIs, UI, and tests from a single description
 
 </details>
 
@@ -1103,6 +1104,7 @@ Official GSAP animation skills covering the full GreenSock ecosystem — core AP
 - **[helius-labs/helius-skills](https://github.com/helius-labs/core-ai/tree/main/helius-skills)** - Ship Solana apps end-to-end; transaction sending, asset queries, real-time streaming, token swaps, prediction markets, browser wallets, and deep research into protocol internals all powered by Helius APIs, DFlow trading, and Phantom wallet integrations
 - **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** - Color science expert skill with 286K words of reference material covering OKLCH/OKLAB, palette generation, accessibility/contrast, color naming, pigment mixing, and historical color theory
 - **[bitwize-music-studio/claude-ai-music-skills](https://github.com/bitwize-music-studio/claude-ai-music-skills)** - Full-lifecycle AI music album production
+- **[oleg-koval/fill-music-player](https://github.com/oleg-koval/fill-music-player)** - Fill a portable music player (Walkman, iPod, USB) with a curated DJ-balanced random selection from a NAS or local music library
 
 </details>
 
