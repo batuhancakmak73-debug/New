@@ -955,6 +955,7 @@ Official GSAP animation skills covering the full GreenSock ecosystem — core AP
 - **[notiondevs/Notion Skills for Claude](https://www.notion.so/notiondevs/Notion-Skills-for-Claude-28da4445d27180c7af1df7d8615723d0)** - Skills for working with Notion
 - **[op7418/NanoBanana-PPT-Skills](https://github.com/op7418/NanoBanana-PPT-Skills)** - AI-powered PPT generation with document analysis and styled images
 - **[zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides)** - Generate animation-rich HTML presentations with visual style previews
+- **[joe960913/feishu-inout](https://github.com/joe960913/feishu-inout)** - Lark/Feishu docs, messaging, calendar & bitable integration for AI coding agents. Zero dependencies, official MCP.
 - **[gokapso/integrate-whatsapp](https://github.com/gokapso/agent-skills/tree/master/skills/integrate-whatsapp)** - Connect WhatsApp, set up webhooks, and send messages
 - **[gokapso/automate-whatsapp](https://github.com/gokapso/agent-skills/tree/master/skills/automate-whatsapp)** - Build WhatsApp automations with workflows and agents
 - **[gokapso/observe-whatsapp](https://github.com/gokapso/agent-skills/tree/master/skills/observe-whatsapp)** - Debug WhatsApp delivery issues and run health checks
