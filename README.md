@@ -1056,6 +1056,7 @@ Official GSAP animation skills covering the full GreenSock ecosystem — core AP
 - **[ethos-link/rails-conventions](https://github.com/ethos-link/rails-conventions)** - Rails 8 conventions for consistent production code changes
 - **[ShunsukeHayashi/agent-skill-bus](https://github.com/ShunsukeHayashi/agent-skill-bus)** - Self-improving task orchestration for AI agent systems
 - **[mcollina/skills](https://github.com/mcollina/skills/tree/main/skills)** - 11 skills by Matteo Collina: Node.js, Fastify, TypeScript, OAuth, Git/GitHub, ESLint neostandard, documentation (Diataxis), Node.js core internals, skill optimizer, and more
+- **[krabat-l/claude-debug](https://github.com/krabat-l/claude-debug)** - Phase-gated debugging that prevents AI agents from guessing at fixes
 
 </details>
 
