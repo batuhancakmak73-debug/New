@@ -981,6 +981,7 @@ Official GSAP animation skills covering the full GreenSock ecosystem — core AP
 - **[Charlie85270/Dorothy](https://github.com/Charlie85270/Dorothy)** - Orchestrate multiple AI CLI agents with automations and MCP servers
 - **[Digidai/product-manager-skills](https://github.com/Digidai/product-manager-skills)** - Senior PM agent with 30+ frameworks and SaaS metrics
 - **[deusyu/translate-book](https://github.com/deusyu/translate-book)** - Translate books (PDF/DOCX/EPUB) via parallel sub-agents with resume
+- **[zephyr2800/no-cap](https://github.com/zephyr2800/no-cap)** - Turn your X bookmarks into actionable signals, filtering out the noise. Claude Code skill with 3-layer noise filter, X article enrichment, styled email digest.
 
 </details>
 
