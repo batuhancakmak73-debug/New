@@ -1001,6 +1001,7 @@ Official skills from Notion's repositories — workspace-aware skills for captur
 - **[Charlie85270/Dorothy](https://github.com/Charlie85270/Dorothy)** - Orchestrate multiple AI CLI agents with automations and MCP servers
 - **[Digidai/product-manager-skills](https://github.com/Digidai/product-manager-skills)** - Senior PM agent with 30+ frameworks and SaaS metrics
 - **[deusyu/translate-book](https://github.com/deusyu/translate-book)** - Translate books (PDF/DOCX/EPUB) via parallel sub-agents with resume
+- **[snowyowlmia/persona-compass](https://github.com/snowyowlmia/persona-compass) - Build AI personality models of colleagues using Big Five, DISC, and conflict frameworks. Predict behavior, generate persona-calibrated message drafts, map relationship networks, and navigate office politics. Privacy-first codename system. Cross-cultural engine (CN/US/JP/KR). 
 
 </details>
 
