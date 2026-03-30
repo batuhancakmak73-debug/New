@@ -1124,6 +1124,11 @@ Official skills from Notion's repositories — workspace-aware skills for captur
 - **[helius-labs/helius-skills](https://github.com/helius-labs/core-ai/tree/main/helius-skills)** - Ship Solana apps end-to-end; transaction sending, asset queries, real-time streaming, token swaps, prediction markets, browser wallets, and deep research into protocol internals all powered by Helius APIs, DFlow trading, and Phantom wallet integrations
 - **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** - Color science expert skill with 286K words of reference material covering OKLCH/OKLAB, palette generation, accessibility/contrast, color naming, pigment mixing, and historical color theory
 - **[bitwize-music-studio/claude-ai-music-skills](https://github.com/bitwize-music-studio/claude-ai-music-skills)** - Full-lifecycle AI music album production
+- **[paulieb89/bouch-skills](https://github.com/paulieb89/bouch-skills)** - 9 free skills for UK professionals: property comps, P6 schedule summary, legislation lookup, Pine Script v6 lookup (4 with free MCP servers), plus content humaniser, meeting actions, client prep, workflow auditor, AI policy generator
+- **[paulieb89/property-shared](https://github.com/paulieb89/property-shared)** - UK property data MCP server with skills: Land Registry comps, EPC, Rightmove, rental yields, stamp duty, Companies House, planning
+- **[paulieb89/pyp6xer-mcp](https://github.com/paulieb89/pyp6xer-mcp)** - Primavera P6 XER schedule analysis MCP server with skills: critical path, earned value, float, quality checks, CSV export
+- **[paulieb89/uk-legal-mcp](https://github.com/paulieb89/uk-legal-mcp)** - UK legal research MCP server with skills: case law, legislation, Hansard debates, HMRC guidance, OSCOLA citations
+- **[paulieb89/pinescript-mcp](https://github.com/paulieb89/pinescript-mcp)** - Pine Script v6 MCP server with skills: documentation lookup, function validation, linting
 
 </details>
 
