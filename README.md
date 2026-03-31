@@ -1124,7 +1124,7 @@ Official skills from Notion's repositories — workspace-aware skills for captur
 - **[helius-labs/helius-skills](https://github.com/helius-labs/core-ai/tree/main/helius-skills)** - Ship Solana apps end-to-end; transaction sending, asset queries, real-time streaming, token swaps, prediction markets, browser wallets, and deep research into protocol internals all powered by Helius APIs, DFlow trading, and Phantom wallet integrations
 - **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** - Color science expert skill with 286K words of reference material covering OKLCH/OKLAB, palette generation, accessibility/contrast, color naming, pigment mixing, and historical color theory
 - **[bitwize-music-studio/claude-ai-music-skills](https://github.com/bitwize-music-studio/claude-ai-music-skills)** - Full-lifecycle AI music album production
-- **[strale-io/strale](https://github.com/strale-io/strale/tree/main/packages/skill)** - 270+ quality-scored API capabilities for compliance, company data, and Web3
+- **[strale-io/strale](https://github.com/strale-io/strale/tree/main/packages/skill)** - 270+ quality-scored API capabilities for trust-sensitive data: IBAN/VAT validation, sanctions screening, PEP checks, company registry lookups across 27 countries, KYB verification, web scraping, and lead enrichment. Free tier available (no API key needed for email/IBAN validation)
 
 </details>
 
