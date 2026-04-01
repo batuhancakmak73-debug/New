@@ -1186,6 +1186,12 @@ As the ecosystem grows, consistent quality helps agents discover and use skills 
 | **No absolute paths** | Never hard-code machine-specific paths like `/Users/alice/`. Use relative paths or well-known variables (`$HOME`, `$PROJECT_ROOT`). |
 | **Scoped tools** | Request only the tools the skill actually needs. Avoid blanket `"tools": ["*"]`. Declare tool dependencies explicitly. |
 
+## 📚 Skill Directories & Discovery
+
+| Directory | Description |
+|-----------|-------------|
+| [powerpoint.md](https://powerpoint.md) | Curated directory of 33 AI PowerPoint & Excel skills for Claude Code — tested install commands, quality ratings, and agent-friendly `/llms.txt` |
+
 ## 🤝 Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
