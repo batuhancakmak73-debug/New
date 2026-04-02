@@ -1071,6 +1071,7 @@ Official skills from Notion's repositories — workspace-aware skills for captur
 - **[ShunsukeHayashi/agent-skill-bus](https://github.com/ShunsukeHayashi/agent-skill-bus)** - Self-improving task orchestration for AI agent systems
 - **[mcollina/skills](https://github.com/mcollina/skills/tree/main/skills)** - 11 skills by Matteo Collina: Node.js, Fastify, TypeScript, OAuth, Git/GitHub, ESLint neostandard, documentation (Diataxis), Node.js core internals, skill optimizer, and more
 
+- **[unbrowse-ai/unbrowse](https://github.com/unbrowse-ai/unbrowse)** - API-native agent browser that discovers internal website APIs from traffic and replaces browser automation with direct API calls. 3.6x faster than Playwright across 94 benchmarked domains. Shared route graph with sub-100ms cached resolves. `npm install -g unbrowse`
 </details>
 
 <details>
