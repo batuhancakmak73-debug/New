@@ -995,6 +995,7 @@ Official skills from Notion's repositories — workspace-aware skills for captur
 - **[Charlie85270/Dorothy](https://github.com/Charlie85270/Dorothy)** - Orchestrate multiple AI CLI agents with automations and MCP servers
 - **[Digidai/product-manager-skills](https://github.com/Digidai/product-manager-skills)** - Senior PM agent with 30+ frameworks and SaaS metrics
 - **[deusyu/translate-book](https://github.com/deusyu/translate-book)** - Translate books (PDF/DOCX/EPUB) via parallel sub-agents with resume
+- **[Hybirdss/smartest-tv](https://github.com/Hybirdss/smartest-tv)** - Play Netflix, YouTube, Spotify on your smart TV by name
 
 </details>
 
