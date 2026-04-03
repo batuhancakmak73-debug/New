@@ -1132,6 +1132,7 @@ Official skills from Notion's repositories — workspace-aware skills for captur
 - **[czlonkowski/n8n-node-configuration](https://github.com/czlonkowski/n8n-skills/tree/main/skills/n8n-node-configuration)** - Node configuration with dependency rules and AI connections
 - **[czlonkowski/n8n-validation-expert](https://github.com/czlonkowski/n8n-skills/tree/main/skills/n8n-validation-expert)** - Fix n8n validation errors with error catalog
 - **[czlonkowski/n8n-workflow-patterns](https://github.com/czlonkowski/n8n-skills/tree/main/skills/n8n-workflow-patterns)** - Workflow patterns for webhook, HTTP, database, and AI tasks
+- **Ericyoung-183/alpha-insights** - Professional business analysis with 19 consulting frameworks, harness-enforced quality gates, multi-source triangulation, and structured HTML report generation for 10 business scenarios
 
 </details>
 
