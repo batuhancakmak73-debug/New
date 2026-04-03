@@ -75,6 +75,7 @@ The most contributed Agent Skills repository, built and maintained together with
 | [Product Manager Skills by Dean Peters](#product-manager-skills-by-dean-peters) | [Product Management Skills by Paweł Huryn](#product-management-skills-by-pawel-huryn) | [Skills by MiniMax](#skills-by-minimax-team) |
 | [Skills by DuckDB](#skills-by-duckdb) | [Skills by GSAP](#skills-by-gsap-greensock) | [Skills by Garry Tan (gstack)](#skills-by-garry-tan-gstack) |
 | [Skills by Notion](#skills-by-notion) | [Community Skills](#community-skills) | [Skill Quality Standards](#skill-quality-standards) |
+| [Design and UX Skills](#design-and-ux) | | |
 
 
 
@@ -959,6 +960,13 @@ Official skills from Notion's repositories — workspace-aware skills for captur
 - **[SHADOWPR0/beautiful_prose](https://github.com/SHADOWPR0/beautiful_prose)** - Hard-edged writing style contract for timeless, forceful English prose without AI tics
 - **[blader/humanizer](https://github.com/blader/humanizer)** - Remove signs of AI-generated writing from text, making it sound more natural and human
 - **[Eronred/aso-skills](https://github.com/Eronred/aso-skills)** - 30+ App Store Optimization skills for keyword research, metadata optimization, competitor analysis, creative optimization, and mobile growth strategies via Appeeky API
+
+</details>
+
+<details>
+<summary><h3 style="display:inline">Design and UX</h3></summary>
+
+- **[uxuiprinciples/agent-skills](https://github.com/uxuiprinciples/agent-skills)** - 5 skills for evaluating interfaces against 168 research-backed UX/UI principles, detecting antipatterns, and injecting UX context into AI coding sessions
 
 </details>
 
