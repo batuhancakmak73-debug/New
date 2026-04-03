@@ -1180,6 +1180,8 @@ As the ecosystem grows, consistent quality helps agents discover and use skills 
 | **No absolute paths** | Never hard-code machine-specific paths like `/Users/alice/`. Use relative paths or well-known variables (`$HOME`, `$PROJECT_ROOT`). |
 | **Scoped tools** | Request only the tools the skill actually needs. Avoid blanket `"tools": ["*"]`. Declare tool dependencies explicitly. |
 
+- **[srmbsrg/ask-kernel](https://github.com/srmbsrg/ask-kernel)** - Versioned skill library: 65+ cross-domain skills (finance, engineering, ops, data) invokable by name
+
 ## 🤝 Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
