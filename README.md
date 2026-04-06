@@ -1161,6 +1161,14 @@ Official Resend skills to send and receive emails, build email templates and pow
 </details>
 
 
+<details>
+<summary><h3 style="display:inline">Multi-Agent Orchestration</h3></summary>
+
+- **[milkomida77/guardian-agent-prompts](https://github.com/milkomida77/guardian-agent-prompts)** - 49 production-tested system prompts (AGENT.md) for multi-agent AI systems. Orchestrator, security auditor, code architect, OSINT researcher, trading analyst, and 44 more specialized agents. Each prompt includes identity blocks, quality gates, anti-hallucination rules, and inter-agent communication protocols. Free orchestrator sample + Claude Code setup guide.
+
+</details>
+
+
 ## 🔒 Security Notice
 
 Skills in this list are curated, not audited. They may be updated, modified, or replaced by their original maintainers at any time after being added here.
