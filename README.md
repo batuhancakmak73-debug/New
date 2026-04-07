@@ -1161,6 +1161,13 @@ Official Resend skills to send and receive emails, build email templates and pow
 </details>
 
 
+<details>
+<summary><h3 style="display:inline">Knowledge Management</h3></summary>
+
+- **[Apexlify/vaultweaver](https://github.com/Apexlify/vaultweaver)** - LLM Knowledge Base compiler implementing Karpathy's wiki pattern. Raw sources compiled into interconnected Obsidian-compatible markdown wikis with auto-ingest, concept extraction, BM25 search, and drift detection
+
+</details>
+
 ## 🔒 Security Notice
 
 Skills in this list are curated, not audited. They may be updated, modified, or replaced by their original maintainers at any time after being added here.
