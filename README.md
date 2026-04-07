@@ -1024,6 +1024,13 @@ Official Resend skills to send and receive emails, build email templates and pow
 </details>
 
 <details>
+<summary><h3 style="display:inline">Finance and Trading</h3></summary>
+
+- **[ego-protocol/tbd-vote-cli](https://github.com/ego-protocol/tbd-vote-cli)** - Trade on TBD, a Solana-based prediction market for human opinions, via the `@tbd-vote/cli` package; defers to an [AGENTS.md](https://www.tbd.vote/agents/AGENTS.md) spec for autonomous-loop instructions and HTTP fallback.
+
+</details>
+
+<details>
 <summary><h3 style="display:inline">Development and Testing</h3></summary>
 
 - **[robzolkos/skill-rails-upgrade](https://github.com/robzolkos/skill-rails-upgrade)** - Analyze Rails apps and provide upgrade assessments
