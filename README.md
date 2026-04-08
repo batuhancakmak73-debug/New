@@ -936,6 +936,7 @@ Official GSAP animation skills covering the full GreenSock ecosystem — core AP
 
 </details>
 
+<a id="skills-by-notion"></a>
 <details>
 <summary><h3 style="display:inline">Skills by Notion</h3></summary>
 
@@ -957,6 +958,7 @@ Official skills from Notion's repositories — workspace-aware skills for captur
 
 </details>
 
+<a id="skills-by-resend"></a>
 <details>
 <summary><h3 style="display:inline">Skills by Resend</h3></summary>
 
