@@ -984,6 +984,7 @@ Official Resend skills to send and receive emails, build email templates and pow
 - **[SHADOWPR0/beautiful_prose](https://github.com/SHADOWPR0/beautiful_prose)** - Hard-edged writing style contract for timeless, forceful English prose without AI tics
 - **[blader/humanizer](https://github.com/blader/humanizer)** - Remove signs of AI-generated writing from text, making it sound more natural and human
 - **[Eronred/aso-skills](https://github.com/Eronred/aso-skills)** - 30+ App Store Optimization skills for keyword research, metadata optimization, competitor analysis, creative optimization, and mobile growth strategies via Appeeky API
+- - **[salespeak-ai/buyer-eval-skill](https://github.com/salespeak-ai/buyer-eval-skill)** - Structured B2B vendor evaluation with adversarial scoring across 7 dimensions. Interrogates vendor AI agents and cross-references claims against independent sources. 27 published evaluations, MIT licensed
 
 </details>
 
