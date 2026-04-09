@@ -1190,6 +1190,7 @@ Agent skills can include prompt injections, tool poisoning, hidden malware paylo
 | Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` | [Windsurf Cascade Skills](https://docs.windsurf.com/windsurf/cascade/skills) |
 
 
+- [Gitstar](https://dev.gitstar.ai?utm_medium=github_readme&utm_source=awesome_list&utm_campaign=VoltAgent_awesome-agent-skills) - Follow developers on GitHub and get a feed of what they star and build.
 ## Skill Quality Standards
 
 As the ecosystem grows, consistent quality helps agents discover and use skills reliably. The following references and criteria keep the bar high.
