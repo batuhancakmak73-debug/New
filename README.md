@@ -1014,7 +1014,7 @@ Official MongoDB Agent Skills for agentic workflows — connection management, s
 <details>
 <summary><h3 style="display:inline">Science & Research</h3></summary>
 
-- **[paperzilla-ai/paperzilla-skills](https://github.com/paperzilla-ai/paperzilla-skills)** - Conversational literature monitoring and paper chat for biology and medical research. Supports project-based bioRxiv and medRxiv feeds today, fetches paper markdown for summarization and relevance checks, and has PubMed support planned. OpenClaw distribution is also available on [ClawHub](https://clawhub.ai/pors/paperzilla).
+- **[paperzilla-ai/paperzilla-skills](https://github.com/paperzilla-ai/paperzilla-skills)** - Conversational literature monitoring and paper chat for scientific research. Supports project-based feeds from arXiv, bioRxiv, medRxiv, and ChemRxiv, plus scholar alerts; fetches paper markdown for summarization and relevance checks; and has PubMed support planned. OpenClaw distribution is also available on [ClawHub](https://clawhub.ai/pors/paperzilla).
 
 </details>
 
