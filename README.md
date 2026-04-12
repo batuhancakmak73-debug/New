@@ -1030,6 +1030,7 @@ Official MongoDB Agent Skills for agentic workflows — connection management, s
 - **[SHADOWPR0/beautiful_prose](https://github.com/SHADOWPR0/beautiful_prose)** - Hard-edged writing style contract for timeless, forceful English prose without AI tics
 - **[blader/humanizer](https://github.com/blader/humanizer)** - Remove signs of AI-generated writing from text, making it sound more natural and human
 - **[Eronred/aso-skills](https://github.com/Eronred/aso-skills)** - 30+ App Store Optimization skills for keyword research, metadata optimization, competitor analysis, creative optimization, and mobile growth strategies via Appeeky API
+- **[itallstartedwithaidea/agent-skills](https://github.com/itallstartedwithaidea/agent-skills)** - 73 Google Ads management skills covering audits, keywords, ad copy, bidding, PMax, Shopping, audiences, conversions, budgets, Quality Score, remarketing, and competitor analysis — built from 15+ years of hands-on paid media experience managing hundreds of accounts
 
 </details>
 
