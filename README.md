@@ -1192,6 +1192,7 @@ Official MongoDB Agent Skills for agentic workflows — connection management, s
 - **[helius-labs/helius-skills](https://github.com/helius-labs/core-ai/tree/main/helius-skills)** - Ship Solana apps end-to-end; transaction sending, asset queries, real-time streaming, token swaps, prediction markets, browser wallets, and deep research into protocol internals all powered by Helius APIs, DFlow trading, and Phantom wallet integrations
 - **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** - Color science expert skill with 286K words of reference material covering OKLCH/OKLAB, palette generation, accessibility/contrast, color naming, pigment mixing, and historical color theory
 - **[bitwize-music-studio/claude-ai-music-skills](https://github.com/bitwize-music-studio/claude-ai-music-skills)** - Full-lifecycle AI music album production
+- **[ShiyanW/ai-revision-guard](https://github.com/ShiyanW/ai-revision-guard)** - Prevents AI over-refinement and homogenization in academic writing. 6-step revision protocol with revision cap, 7-point homogenization detection, 8 domain presets (economics, law, medicine, humanities, STEM, psychology, political science, education), optional Codex cross-model verification, and Python diff-check script. Backed by CHI 2025 and Georgetown research showing LLMs make 3x human edit rates and shift arguments 70% toward neutrality
 
 </details>
 
