@@ -1193,6 +1193,13 @@ Official MongoDB Agent Skills for agentic workflows — connection management, s
 - **[helius-labs/helius-skills](https://github.com/helius-labs/core-ai/tree/main/helius-skills)** - Ship Solana apps end-to-end; transaction sending, asset queries, real-time streaming, token swaps, prediction markets, browser wallets, and deep research into protocol internals all powered by Helius APIs, DFlow trading, and Phantom wallet integrations
 - **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** - Color science expert skill with 286K words of reference material covering OKLCH/OKLAB, palette generation, accessibility/contrast, color naming, pigment mixing, and historical color theory
 - **[bitwize-music-studio/claude-ai-music-skills](https://github.com/bitwize-music-studio/claude-ai-music-skills)** - Full-lifecycle AI music album production
+- **[oconsole/odoo-model-inspect](https://github.com/oconsole/odoo-skills/tree/master/odoo-model-inspect)** - Inspect Odoo model structure and fields read-only
+- **[oconsole/odoo-accounting-inspect](https://github.com/oconsole/odoo-skills/tree/master/odoo-accounting-inspect)** - Inspect Odoo invoices, bills, and payments read-only
+- **[oconsole/odoo-mrp-inspect](https://github.com/oconsole/odoo-skills/tree/master/odoo-mrp-inspect)** - Inspect Odoo manufacturing orders and BoMs read-only
+- **[oconsole/odoo-stock-inspect](https://github.com/oconsole/odoo-skills/tree/master/odoo-stock-inspect)** - Inspect Odoo inventory and stock moves read-only
+- **[oconsole/odoo-system-inspect](https://github.com/oconsole/odoo-skills/tree/master/odoo-system-inspect)** - Inspect Odoo system health and modules read-only
+- **[oconsole/odoo-model-customize](https://github.com/oconsole/odoo-skills/tree/master/odoo-model-customize)** - Customize Odoo models at runtime without modules
+- **[oconsole/odoo-model-customize-demo](https://github.com/oconsole/odoo-skills/tree/master/odoo-model-customize-demo)** - Sandboxed Odoo customization with demo tagging
 
 </details>
 
