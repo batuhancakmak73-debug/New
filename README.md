@@ -1144,6 +1144,9 @@ Official MongoDB Agent Skills for agentic workflows — connection management, s
 - **[mcollina/skills](https://github.com/mcollina/skills/tree/main/skills)** - 11 skills by Matteo Collina: Node.js, Fastify, TypeScript, OAuth, Git/GitHub, ESLint neostandard, documentation (Diataxis), Node.js core internals, skill optimizer, and more
 - **[Lum1104/understand-anything](https://github.com/Lum1104/Understand-Anything)** - Interactive codebase knowledge graphs via multi-agent LLM analysis
 - **[hqhq1025/skill-optimizer](https://github.com/hqhq1025/skill-optimizer)** - Diagnose and optimize Agent Skills (SKILL.md) with real session data and research-backed static analysis. Works with Claude Code, Codex, and any Agent Skills-compatible agent
+- **[nottelabs/agent-skill-notte](https://github.com/nottelabs/agent-skill-notte)** - Browser automation skill for AI
+  agents: real-browser navigation, structured scraping with Pydantic output, and hybrid scripted/agent web workflows via the  
+  Notte Python SDK and MCP server
 
 </details>
 
