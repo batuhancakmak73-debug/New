@@ -20,7 +20,7 @@
 <div align="center">
 
 [![Awesome](https://awesome.re/badge.svg)](https://awesome.re)
-![Skills Count](https://img.shields.io/badge/Skills-1184+-blue?style=flat-square)
+![Skills Count](https://img.shields.io/badge/Skills-1185+-blue?style=flat-square)
 ![Last Update](https://img.shields.io/github/last-commit/VoltAgent/awesome-agent-skills?label=Last%20update&style=flat-square)
 <a href="https://github.com/VoltAgent/voltagent">
   <img alt="VoltAgent" src="https://cdn.voltagent.dev/website/logo/logo-2-svg.svg" height="20" />
@@ -1366,6 +1366,7 @@ Official MongoDB Agent Skills for agentic workflows — connection management, s
 - **[helius-labs/helius-skills](https://github.com/helius-labs/core-ai/tree/main/helius-skills)** - Ship Solana apps end-to-end; transaction sending, asset queries, real-time streaming, token swaps, prediction markets, browser wallets, and deep research into protocol internals all powered by Helius APIs, DFlow trading, and Phantom wallet integrations
 - **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** - Color science expert skill with 286K words of reference material covering OKLCH/OKLAB, palette generation, accessibility/contrast, color naming, pigment mixing, and historical color theory
 - **[bitwize-music-studio/claude-ai-music-skills](https://github.com/bitwize-music-studio/claude-ai-music-skills)** - Full-lifecycle AI music album production
+- **[connerlambden/helium-mcp](https://github.com/connerlambden/helium-mcp)** - News intelligence, media bias analysis, and financial market data. [MCP server](https://heliumtrades.com/mcp): ten tools including search_news (3.2M+ articles, 5000+ sources, 15+ bias dimensions), search_balanced_news, get_source_bias, get_bias_from_url, get_ticker (stocks/ETFs/crypto), get_option_price, get_top_trading_strategies, get_historical_options_data, get_all_source_biases, search_memes
 
 </details>
 
