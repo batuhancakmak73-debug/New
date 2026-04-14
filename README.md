@@ -1128,6 +1128,7 @@ Official MongoDB Agent Skills for agentic workflows — connection management, s
 - **[hamelsmu/eval-audit](https://github.com/hamelsmu/prompts/tree/main/evals-skills/skills/eval-audit)** - Audit LLM eval pipelines and surface problems
 - **[hamelsmu/error-analysis](https://github.com/hamelsmu/prompts/tree/main/evals-skills/skills/error-analysis)** - Systematically identify failure modes in LLM pipelines
 - **[hamelsmu/generate-synthetic-data](https://github.com/hamelsmu/prompts/tree/main/evals-skills/skills/generate-synthetic-data)** - Create diverse synthetic test inputs for LLM evals
+- **[Evol-ai/SkillCompass](https://github.com/Evol-ai/SkillCompass)** - Local-first skill quality evaluator that scores six dimensions (Structure, Trigger, Security, Functional, Comparative, Uniqueness), identifies the weakest link, and guides targeted fixes with version tracking
 - **[hamelsmu/write-judge-prompt](https://github.com/hamelsmu/prompts/tree/main/evals-skills/skills/write-judge-prompt)** - Design LLM-as-Judge evaluators for subjective criteria
 - **[hamelsmu/validate-evaluator](https://github.com/hamelsmu/prompts/tree/main/evals-skills/skills/validate-evaluator)** - Calibrate LLM judges against human labels
 - **[hamelsmu/evaluate-rag](https://github.com/hamelsmu/prompts/tree/main/evals-skills/skills/evaluate-rag)** - Evaluate RAG retrieval and generation quality
