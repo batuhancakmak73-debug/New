@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-green-dark: #1B3A2D;
+    --color-green-mid: #2D5A3D;
+    --color-green-light: #3D7A52;
+    --color-amber: #B5783A;
+    --color-amber-light: #D4944A;
+    --color-red-ace: #E31837;
+    --color-cream: #F8F5F0;
+    --color-charcoal: #1A1A1A;
+    --color-gray-warm: #6B6560;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    color: #1A1A1A;
+    background: #ffffff;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-family: 'Georgia', 'Times New Roman', serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center bg-[#1B3A2D] text-white font-semibold px-7 py-3 hover:bg-[#2D5A3D] transition-colors duration-200 tracking-widest text-sm uppercase gap-2;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center border-2 border-[#1B3A2D] text-[#1B3A2D] font-semibold px-7 py-3 hover:bg-[#1B3A2D] hover:text-white transition-all duration-200 tracking-widest text-sm uppercase gap-2;
+  }
+
+  .btn-amber {
+    @apply inline-flex items-center justify-center bg-[#B5783A] text-white font-semibold px-7 py-3 hover:bg-[#D4944A] transition-colors duration-200 tracking-widest text-sm uppercase gap-2;
+  }
+
+  .btn-white {
+    @apply inline-flex items-center justify-center bg-white text-[#1B3A2D] font-semibold px-7 py-3 hover:bg-[#F8F5F0] transition-colors duration-200 tracking-widest text-sm uppercase gap-2;
+  }
+
+  .section-heading {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold text-[#1B3A2D] leading-tight;
+  }
+
+  .section-subheading {
+    @apply text-lg text-[#6B6560] mt-4 leading-relaxed max-w-2xl;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+  }
+
+  .page-hero-bg {
+    background: linear-gradient(135deg, #1B3A2D 0%, #2D5A3D 50%, #1B3A2D 100%);
+  }
+
+  .nav-dropdown-item {
+    @apply block px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F8F5F0] hover:text-[#1B3A2D] transition-colors font-medium;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
