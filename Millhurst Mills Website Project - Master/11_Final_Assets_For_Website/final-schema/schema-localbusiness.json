@@ -1,0 +1,76 @@
+{
+  "@context": "https://schema.org",
+  "@type": ["LocalBusiness", "HomeAndConstructionBusiness", "Store"],
+  "name": "Millhurst Mills",
+  "alternateName": "Millhurst Mills Ace Hardware",
+  "description": "Millhurst Mills is your local Ace Hardware dealer and lumber yard in [Town], [State]. We carry building materials, Benjamin Moore paint, composite decking, grills, doors, windows, and contractor supplies.",
+  "url": "https://[WEBSITE-URL]",
+  "telephone": "[FILL-IN-PHONE]",
+  "email": "[FILL-IN-EMAIL]",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "[FILL-IN-STREET]",
+    "addressLocality": "[FILL-IN-CITY]",
+    "addressRegion": "[FILL-IN-STATE]",
+    "postalCode": "[FILL-IN-ZIP]",
+    "addressCountry": "US"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": "[FILL-IN-LAT]",
+    "longitude": "[FILL-IN-LNG]"
+  },
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      "opens": "[FILL-IN e.g. 07:00]",
+      "closes": "[FILL-IN e.g. 17:00]"
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": "Saturday",
+      "opens": "[FILL-IN]",
+      "closes": "[FILL-IN]"
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": "Sunday",
+      "opens": "[FILL-IN or remove if closed]",
+      "closes": "[FILL-IN or remove if closed]"
+    }
+  ],
+  "image": [
+    "https://[WEBSITE-URL]/images/storefront.jpg",
+    "https://[WEBSITE-URL]/images/lumber-yard.jpg",
+    "https://[WEBSITE-URL]/images/interior.jpg"
+  ],
+  "logo": "https://[WEBSITE-URL]/images/millhurst-mills-logo.png",
+  "sameAs": [
+    "[GOOGLE-BUSINESS-URL]",
+    "[FACEBOOK-URL]",
+    "[YELP-URL]"
+  ],
+  "priceRange": "$$",
+  "currenciesAccepted": "USD",
+  "paymentAccepted": "Cash, Credit Card, Check",
+  "hasMap": "[GOOGLE-MAPS-URL]",
+  "servesCuisine": null,
+  "department": [
+    {
+      "@type": "HomeAndConstructionBusiness",
+      "name": "Millhurst Mills Lumber Yard",
+      "description": "Full-service lumber yard with dimensional lumber, plywood, pressure treated lumber, and more."
+    },
+    {
+      "@type": "Store",
+      "name": "Millhurst Mills Ace Hardware",
+      "description": "Authorized Ace Hardware dealer. Tools, fasteners, paint, outdoor, plumbing, electrical."
+    },
+    {
+      "@type": "Store",
+      "name": "Millhurst Mills Benjamin Moore Paint Center",
+      "description": "Authorized Benjamin Moore paint dealer. Interior and exterior paints, stains, and finishes."
+    }
+  ]
+}
