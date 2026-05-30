@@ -3,4 +3,8 @@ skills/downloads/
 scripts/__pycache__/
 scripts/download-skills.py
 .DS_Store
-.claude/
+# Ignore Claude personal/session state but track project-level config
+.claude/todos/
+.claude/projects/
+.claude/cache/
+.claude/*.jsonl
