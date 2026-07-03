@@ -52,6 +52,8 @@ export function initials(name: string): string {
     .toUpperCase();
 }
 
+const API_ORIGIN = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 export function imageUrl(filename?: string | null): string | null {
-  return filename ? `/uploads/${filename}` : null;
+  return filename ? `${API_ORIGIN}/uploads/${filename}` : null;
 }

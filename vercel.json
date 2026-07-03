@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd sellpilot-ai/frontend && npm install",
+  "buildCommand": "cd sellpilot-ai/frontend && npm run build",
+  "outputDirectory": "sellpilot-ai/frontend/dist",
+  "rewrites": [
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}
