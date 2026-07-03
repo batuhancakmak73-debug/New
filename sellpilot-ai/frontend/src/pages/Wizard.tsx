@@ -16,6 +16,9 @@ import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { PlatformBadge } from '@/components/PlatformBadge';
+import {
+  BannerStudioPanel, EngagementOptimizerPanel, GroupDiscoveryPanel, PricingIntelligencePanel,
+} from '@/components/WizardIntelligence';
 import { cn, formatMoney, imageUrl, PLATFORM_META, PUBLISHABLE_PLATFORMS } from '@/lib/utils';
 
 const STEPS = ['Product Details', 'AI Generation', 'Review & Edit', 'Schedule & Publish'];
@@ -343,6 +346,18 @@ export default function Wizard() {
                 </ul>
               </CardContent>
             </Card>
+
+            {/* Advanced intelligence modules */}
+            <PricingIntelligencePanel
+              product={product}
+              onUsePricing={(ask, floor) => {
+                setPricing((p: any) => ({ ...(p || {}), suggested_ask: ask, floor_price: floor }));
+                setListings((list) => list.map((l) => ({ ...l, price: ask })));
+              }}
+            />
+            <GroupDiscoveryPanel product={product} />
+            <EngagementOptimizerPanel product={product} />
+            <BannerStudioPanel product={product} pricing={pricing} />
           </div>
 
           {/* Right panel */}

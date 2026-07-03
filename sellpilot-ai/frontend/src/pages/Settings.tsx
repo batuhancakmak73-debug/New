@@ -27,21 +27,38 @@ const TABS = [
   { key: 'api', label: 'API', icon: KeyRound },
 ];
 
-const MARKETPLACES = [
-  { key: 'facebook', name: 'Facebook', fields: ['username', 'access_token'] },
-  { key: 'craigslist', name: 'Craigslist', fields: ['username', 'api_key'] },
-  { key: 'ebay', name: 'eBay', fields: ['username', 'api_key', 'api_secret'] },
-  { key: 'offerup', name: 'OfferUp', fields: ['username', 'api_key'] },
-  { key: 'instagram', name: 'Instagram', fields: ['username', 'access_token'] },
-  { key: 'tiktok', name: 'TikTok', fields: ['username', 'api_key', 'api_secret'] },
+const MARKETPLACES: { key: string; name: string; fields: [string, string][]; note?: string }[] = [
+  {
+    key: 'facebook', name: 'Facebook',
+    fields: [['username', 'Page ID'], ['access_token', 'Page access token']],
+    note: 'Auto-posts to your Facebook Page via the Graph API. Personal Marketplace listings can’t be automated (Meta policy) — use copy-paste for those.',
+  },
+  {
+    key: 'ebay', name: 'eBay',
+    fields: [['username', 'eBay username'], ['api_key', 'Client ID (App ID)'], ['api_secret', 'Client Secret (Cert ID)'], ['access_token', 'User refresh token']],
+    note: 'Create a production app at developer.ebay.com, then mint a user refresh token with the sell scopes.',
+  },
+  {
+    key: 'craigslist', name: 'Craigslist',
+    fields: [],
+    note: 'Craigslist has no posting API. Use the Post button on a listing — it copies your ad and opens the Craigslist form.',
+  },
+  {
+    key: 'instagram', name: 'Instagram',
+    fields: [['username', 'IG Business Account ID'], ['access_token', 'Access token']],
+    note: 'Auto-posts photo + caption via the Instagram Graph API. Requires an Instagram Business/Creator account linked to a Facebook Page; photos must be JPEG.',
+  },
+  {
+    key: 'offerup', name: 'OfferUp',
+    fields: [],
+    note: 'OfferUp has no public posting API. Use the Post button on a listing — it copies your ad and opens the OfferUp form.',
+  },
+  {
+    key: 'tiktok', name: 'TikTok',
+    fields: [],
+    note: 'TikTok posts need a video, which their API only allows for audited apps. The Post button copies your 30-second script and opens TikTok Studio upload.',
+  },
 ];
-
-const FIELD_LABELS: Record<string, string> = {
-  username: 'Username / email',
-  api_key: 'API key',
-  api_secret: 'API secret',
-  access_token: 'Access token',
-};
 
 const NOTIFICATIONS = [
   { key: 'new_leads', label: 'New leads', desc: 'Alert when a buyer message becomes a lead' },
@@ -229,27 +246,30 @@ export default function Settings() {
                       <Badge variant={connected ? 'success' : 'muted'}>{connected ? 'Connected' : 'Disconnected'}</Badge>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {mp.fields.map((field) => (
+                      {mp.note && <p className="text-xs text-sp-text-muted">{mp.note}</p>}
+                      {mp.fields.map(([field, label]) => (
                         <div key={field}>
-                          <Label>{FIELD_LABELS[field]}</Label>
+                          <Label>{label}</Label>
                           <Input
                             type={field === 'username' ? 'text' : 'password'}
-                            placeholder={connected && cred?.[field] ? cred[field] : `Enter ${FIELD_LABELS[field].toLowerCase()}`}
+                            placeholder={connected && cred?.[field] ? cred[field] : `Enter ${label.toLowerCase()}`}
                             value={form[field] || ''}
                             onChange={(e) => setCredForms((f) => ({ ...f, [mp.key]: { ...form, [field]: e.target.value } }))}
                           />
                         </div>
                       ))}
-                      <div className="flex gap-2 pt-1">
-                        {connected ? (
-                          <>
-                            <Button size="sm" variant="destructive" onClick={() => disconnect(mp.key)}>Disconnect</Button>
-                            <Button size="sm" variant="secondary" onClick={() => testConnection(mp.key)}>Test Connection</Button>
-                          </>
-                        ) : (
-                          <Button size="sm" onClick={() => connect(mp.key)}>Connect</Button>
-                        )}
-                      </div>
+                      {mp.fields.length > 0 && (
+                        <div className="flex gap-2 pt-1">
+                          {connected ? (
+                            <>
+                              <Button size="sm" variant="destructive" onClick={() => disconnect(mp.key)}>Disconnect</Button>
+                              <Button size="sm" variant="secondary" onClick={() => testConnection(mp.key)}>Test Connection</Button>
+                            </>
+                          ) : (
+                            <Button size="sm" onClick={() => connect(mp.key)}>Connect</Button>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
