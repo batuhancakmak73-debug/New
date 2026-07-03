@@ -43,9 +43,21 @@ const MARKETPLACES: { key: string; name: string; fields: [string, string][]; not
     fields: [],
     note: 'Craigslist has no posting API. Use the Post button on a listing — it copies your ad and opens the Craigslist form.',
   },
-  { key: 'offerup', name: 'OfferUp', fields: [['username', 'Username / email'], ['api_key', 'API key']] },
-  { key: 'instagram', name: 'Instagram', fields: [['username', 'Username'], ['access_token', 'Access token']] },
-  { key: 'tiktok', name: 'TikTok', fields: [['username', 'Username'], ['api_key', 'API key'], ['api_secret', 'API secret']] },
+  {
+    key: 'instagram', name: 'Instagram',
+    fields: [['username', 'IG Business Account ID'], ['access_token', 'Access token']],
+    note: 'Auto-posts photo + caption via the Instagram Graph API. Requires an Instagram Business/Creator account linked to a Facebook Page; photos must be JPEG.',
+  },
+  {
+    key: 'offerup', name: 'OfferUp',
+    fields: [],
+    note: 'OfferUp has no public posting API. Use the Post button on a listing — it copies your ad and opens the OfferUp form.',
+  },
+  {
+    key: 'tiktok', name: 'TikTok',
+    fields: [],
+    note: 'TikTok posts need a video, which their API only allows for audited apps. The Post button copies your 30-second script and opens TikTok Studio upload.',
+  },
 ];
 
 const NOTIFICATIONS = [

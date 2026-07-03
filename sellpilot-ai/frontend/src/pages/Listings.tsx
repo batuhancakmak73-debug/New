@@ -186,16 +186,20 @@ export default function Listings() {
                   )}
                 </span>
                 <div className="flex gap-1">
-                  {['ebay', 'craigslist'].includes(l.platform) || l.platform.startsWith('facebook') ? (
+                  {!['dm_replies', 'follow_ups'].includes(l.platform) && (
                     <Button
                       variant="ghost" size="icon"
-                      title={l.platform === 'craigslist' ? 'Copy ad & open Craigslist' : 'Post live now'}
+                      title={
+                        ['craigslist', 'offerup', 'tiktok'].includes(l.platform)
+                          ? 'Copy ad & open the platform’s post form'
+                          : 'Post live now'
+                      }
                       disabled={posting === l.id}
                       onClick={() => post(l)}
                     >
                       <Send size={14} className={posting === l.id ? 'animate-pulse text-sp-text-muted' : 'text-sp-primary-light'} />
                     </Button>
-                  ) : null}
+                  )}
                   <Button variant="ghost" size="icon" title="Edit" onClick={() => setEditing({ ...l })}><Pencil size={14} /></Button>
                   <Button variant="ghost" size="icon" title="Duplicate" onClick={() => duplicate(l)}><Copy size={14} /></Button>
                   <Button variant="ghost" size="icon" title="Delete" onClick={() => remove(l)}><Trash2 size={14} className="text-sp-danger" /></Button>

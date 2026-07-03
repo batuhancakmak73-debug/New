@@ -402,6 +402,56 @@ async function publishToFacebookPage(listing: any, product: any, cred: any): Pro
   return `https://www.facebook.com/${data.post_id || data.id}`;
 }
 
+// Instagram Content Publishing API (Business/Creator accounts).
+// credentials: username = IG Business Account ID, access_token = token
+// with instagram_content_publish permission.
+async function publishToInstagram(listing: any, product: any, cred: any): Promise<string> {
+  if (!cred.username || !cred.access_token) {
+    throw new Error('Instagram needs your IG Business Account ID and an access token (Settings → Marketplace Credentials)');
+  }
+  const image = (product.images || [])[0];
+  if (!image) throw new Error('Instagram requires at least one product photo (JPEG)');
+  const caption = `${listing.title || product.name}\n\n${listing.description || ''}`.trim().slice(0, 2200);
+
+  let res = await fetch(`https://graph.facebook.com/v21.0/${cred.username}/media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image_url: image, caption, access_token: cred.access_token }),
+  });
+  let data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) throw new Error(`Instagram: ${data.error?.message || `HTTP ${res.status}`}`);
+
+  res = await fetch(`https://graph.facebook.com/v21.0/${cred.username}/media_publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ creation_id: data.id, access_token: cred.access_token }),
+  });
+  data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) throw new Error(`Instagram publish: ${data.error?.message || `HTTP ${res.status}`}`);
+
+  const info = await fetch(
+    `https://graph.facebook.com/v21.0/${data.id}?fields=permalink&access_token=${encodeURIComponent(cred.access_token)}`
+  ).then((r) => r.json()).catch(() => ({}));
+  return info.permalink || 'https://www.instagram.com/';
+}
+
+// Platforms with no legitimate posting API get the assisted flow:
+// the frontend copies the finished ad and opens the platform's own form.
+const ASSISTED_PLATFORMS: Record<string, { url: string; message: string }> = {
+  craigslist: {
+    url: 'https://post.craigslist.org/',
+    message: 'Craigslist has no posting API. Your ad text is ready — paste it into their form.',
+  },
+  offerup: {
+    url: 'https://offerup.com/post/',
+    message: 'OfferUp has no public posting API. Your ad is copied — paste it into their form.',
+  },
+  tiktok: {
+    url: 'https://www.tiktok.com/tiktokstudio/upload',
+    message: 'TikTok needs a video. Your 30-second script is copied — record it and paste as the caption.',
+  },
+};
+
 // --------------------------------------------------------------------- serve
 
 Deno.serve(async (req) => {
@@ -804,15 +854,10 @@ Deno.serve(async (req) => {
 
       const group = listing.platform.startsWith('facebook') ? 'facebook' : listing.platform;
 
-      if (group === 'craigslist') {
-        // Craigslist has no posting API and forbids bots — assisted flow only.
-        return json({
-          mode: 'assisted',
-          url: 'https://post.craigslist.org/',
-          message: 'Craigslist has no posting API. Your ad text is ready — paste it into their form.',
-        });
+      if (ASSISTED_PLATFORMS[group]) {
+        return json({ mode: 'assisted', ...ASSISTED_PLATFORMS[group] });
       }
-      if (!['ebay', 'facebook'].includes(group)) {
+      if (!['ebay', 'facebook', 'instagram'].includes(group)) {
         return err(`Auto-posting to ${group} is not supported — no public posting API`, 400);
       }
 
@@ -829,7 +874,9 @@ Deno.serve(async (req) => {
         const publishedUrl =
           group === 'ebay'
             ? await publishToEbay(listing, product, cred)
-            : await publishToFacebookPage(listing, product, cred);
+            : group === 'instagram'
+              ? await publishToInstagram(listing, product, cred)
+              : await publishToFacebookPage(listing, product, cred);
         await supabase.from('listings').update({ status: 'published', published_url: publishedUrl }).eq('id', listing.id);
         return json({ mode: 'auto', published_url: publishedUrl });
       } catch (e) {
