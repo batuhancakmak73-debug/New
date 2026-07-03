@@ -1,0 +1,22 @@
+# One-click backend deploy: Render dashboard -> New -> Blueprint -> pick this repo.
+# Gives the Express + SQLite backend a persistent disk for the database and uploads.
+services:
+  - type: web
+    name: sellpilot-backend
+    runtime: node
+    rootDir: sellpilot-ai/backend
+    buildCommand: npm install
+    startCommand: node server.js
+    disk:
+      name: sellpilot-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_PATH
+        value: /data/sellpilot.db
+      - key: UPLOAD_DIR
+        value: /data/uploads
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
