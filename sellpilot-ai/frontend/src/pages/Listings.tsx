@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Copy, List, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Copy, ExternalLink, List, Pencil, Plus, Search, Send, Trash2 } from 'lucide-react';
 import { api, apiError } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -85,6 +85,28 @@ export default function Listings() {
     }
   }
 
+  const [posting, setPosting] = useState<number | null>(null);
+
+  // Real posting: eBay + Facebook Page via API; Craigslist assisted (copy + open form).
+  async function post(l: any) {
+    setPosting(l.id);
+    try {
+      const res = await api.post('/publish', { listing_id: l.id });
+      if (res.data.mode === 'assisted') {
+        await navigator.clipboard?.writeText(`${l.title || ''}\n\n${l.description || ''}`.trim());
+        window.open(res.data.url, '_blank');
+        toast('info', 'Ad copied to clipboard', res.data.message);
+      } else {
+        toast('success', 'Posted live 🎉', res.data.published_url);
+        load();
+      }
+    } catch (err) {
+      toast('error', 'Posting failed', apiError(err));
+    } finally {
+      setPosting(null);
+    }
+  }
+
   async function remove(l: any) {
     if (!confirm('Delete this listing?')) return;
     try {
@@ -154,8 +176,26 @@ export default function Listings() {
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-sp-active/30 pt-3">
-                <span className="text-xs text-sp-text-muted">{l.created_at ? format(new Date(l.created_at), 'MMM d, yyyy') : ''}</span>
+                <span className="text-xs text-sp-text-muted">
+                  {l.published_url ? (
+                    <a href={l.published_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sp-success hover:underline">
+                      <ExternalLink size={11} /> View live
+                    </a>
+                  ) : (
+                    l.created_at ? format(new Date(l.created_at), 'MMM d, yyyy') : ''
+                  )}
+                </span>
                 <div className="flex gap-1">
+                  {['ebay', 'craigslist'].includes(l.platform) || l.platform.startsWith('facebook') ? (
+                    <Button
+                      variant="ghost" size="icon"
+                      title={l.platform === 'craigslist' ? 'Copy ad & open Craigslist' : 'Post live now'}
+                      disabled={posting === l.id}
+                      onClick={() => post(l)}
+                    >
+                      <Send size={14} className={posting === l.id ? 'animate-pulse text-sp-text-muted' : 'text-sp-primary-light'} />
+                    </Button>
+                  ) : null}
                   <Button variant="ghost" size="icon" title="Edit" onClick={() => setEditing({ ...l })}><Pencil size={14} /></Button>
                   <Button variant="ghost" size="icon" title="Duplicate" onClick={() => duplicate(l)}><Copy size={14} /></Button>
                   <Button variant="ghost" size="icon" title="Delete" onClick={() => remove(l)}><Trash2 size={14} className="text-sp-danger" /></Button>

@@ -23,6 +23,13 @@ app.use('/api/analytics', require('./routes/analytics'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
+// Real marketplace posting (eBay / Facebook Page) is implemented in the hosted
+// backend (supabase/functions/api); the local dev server only stubs it.
+const { authRequired } = require('./middleware/auth');
+app.post('/api/publish', authRequired, (req, res) => {
+  res.status(501).json({ error: 'Auto-posting runs on the hosted backend — use the deployed app' });
+});
+
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });

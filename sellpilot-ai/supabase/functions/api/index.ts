@@ -286,6 +286,122 @@ async function ownedListing(id: string, userId: number) {
 
 const num = (v: unknown) => (v === undefined || v === null || v === '' ? null : parseFloat(String(v)) || null);
 
+// -------------------------------------------------- marketplace auto-posting
+
+const xml = (s: unknown) =>
+  String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// eBay OAuth: credentials hold api_key = Client ID, api_secret = Client Secret,
+// access_token = user refresh token (long-lived). Mint a short-lived access
+// token per publish call.
+async function ebayAccessToken(cred: any): Promise<string> {
+  if (!cred.api_key || !cred.api_secret || !cred.access_token) {
+    throw new Error('eBay needs Client ID, Client Secret and a user refresh token (Settings → Marketplace Credentials)');
+  }
+  const res = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${btoa(`${cred.api_key}:${cred.api_secret}`)}`,
+    },
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: cred.access_token }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.access_token) {
+    throw new Error(`eBay auth failed: ${data.error_description || data.error || res.status}`);
+  }
+  return data.access_token;
+}
+
+async function ebayTradingCall(callName: string, token: string, body: string): Promise<string> {
+  const res = await fetch('https://api.ebay.com/ws/api.dll', {
+    method: 'POST',
+    headers: {
+      'X-EBAY-API-COMPATIBILITY-LEVEL': '1193',
+      'X-EBAY-API-CALL-NAME': callName,
+      'X-EBAY-API-SITEID': '0',
+      'X-EBAY-API-IAF-TOKEN': token,
+      'Content-Type': 'text/xml',
+    },
+    body: `<?xml version="1.0" encoding="utf-8"?><${callName}Request xmlns="urn:ebay:apis:eBLBaseComponents">${body}</${callName}Request>`,
+  });
+  const text = await res.text();
+  if (/<Ack>(Success|Warning)<\/Ack>/.test(text)) return text;
+  const message = text.match(/<LongMessage>([^<]*)<\/LongMessage>/)?.[1] || `HTTP ${res.status}`;
+  throw new Error(`eBay ${callName}: ${message}`);
+}
+
+async function publishToEbay(listing: any, product: any, cred: any): Promise<string> {
+  const token = await ebayAccessToken(cred);
+  const title = String(listing.title || product.name).slice(0, 80);
+
+  // Let eBay suggest the category from the title.
+  const suggest = await ebayTradingCall('GetSuggestedCategories', token, `<Query>${xml(title)}</Query>`);
+  const categoryId = suggest.match(/<CategoryID>(\d+)<\/CategoryID>/)?.[1];
+  if (!categoryId) throw new Error('eBay could not suggest a category for this title — tweak the title and retry');
+
+  const conditionId = product.condition === 'New' ? '1000' : '3000';
+  const pictures = (product.images || [])
+    .slice(0, 12)
+    .map((u: string) => `<PictureURL>${xml(u)}</PictureURL>`)
+    .join('');
+
+  const itemXml = `<ErrorLanguage>en_US</ErrorLanguage><WarningLevel>High</WarningLevel><Item>
+    <Title>${xml(title)}</Title>
+    <Description><![CDATA[${String(listing.description || '').replace(/\n/g, '<br/>')}]]></Description>
+    <PrimaryCategory><CategoryID>${categoryId}</CategoryID></PrimaryCategory>
+    <CategoryMappingAllowed>true</CategoryMappingAllowed>
+    <StartPrice>${Number(listing.price) || 1}</StartPrice>
+    <ConditionID>${conditionId}</ConditionID>
+    <Country>US</Country><Currency>USD</Currency>
+    <DispatchTimeMax>3</DispatchTimeMax>
+    <ListingDuration>GTC</ListingDuration>
+    <ListingType>FixedPriceItem</ListingType>
+    ${pictures ? `<PictureDetails>${pictures}</PictureDetails>` : ''}
+    <Location>${xml(product.location || 'United States')}</Location>
+    <Quantity>${product.quantity || 1}</Quantity>
+    <ReturnPolicy><ReturnsAcceptedOption>ReturnsNotAccepted</ReturnsAcceptedOption></ReturnPolicy>
+    <ShippingDetails>
+      <ShippingType>Flat</ShippingType>
+      <ShippingServiceOptions>
+        <ShippingServicePriority>1</ShippingServicePriority>
+        <ShippingService>USPSGroundAdvantage</ShippingService>
+        <ShippingServiceCost>0.00</ShippingServiceCost>
+      </ShippingServiceOptions>
+    </ShippingDetails>
+  </Item>`;
+
+  const added = await ebayTradingCall('AddFixedPriceItem', token, itemXml);
+  const itemId = added.match(/<ItemID>(\d+)<\/ItemID>/)?.[1];
+  if (!itemId) throw new Error('eBay accepted the request but returned no item id');
+  return `https://www.ebay.com/itm/${itemId}`;
+}
+
+// Facebook Page post via Graph API. credentials: username = Page ID,
+// access_token = Page access token.
+async function publishToFacebookPage(listing: any, product: any, cred: any): Promise<string> {
+  if (!cred.username || !cred.access_token) {
+    throw new Error('Facebook needs a Page ID and a Page access token (Settings → Marketplace Credentials)');
+  }
+  const message = `${listing.title || product.name}\n\n${listing.description || ''}`.trim();
+  const image = (product.images || [])[0];
+  const endpoint = image
+    ? `https://graph.facebook.com/v21.0/${cred.username}/photos`
+    : `https://graph.facebook.com/v21.0/${cred.username}/feed`;
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(
+      image
+        ? { url: image, caption: message, access_token: cred.access_token }
+        : { message, access_token: cred.access_token }
+    ),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) throw new Error(`Facebook: ${data.error?.message || `HTTP ${res.status}`}`);
+  return `https://www.facebook.com/${data.post_id || data.id}`;
+}
+
 // --------------------------------------------------------------------- serve
 
 Deno.serve(async (req) => {
@@ -676,6 +792,49 @@ Deno.serve(async (req) => {
       if (!row) return err('Credentials not found', 404);
       await supabase.from('marketplace_credentials').delete().eq('id', row.id);
       return json({ success: true });
+    }
+
+    // ---- publish: real marketplace posting
+    if (path === '/publish' && method === 'POST') {
+      const b = await req.json().catch(() => ({}));
+      if (!b.listing_id) return err('listing_id is required', 400);
+      const listing = await ownedListing(String(b.listing_id), user.id);
+      if (!listing) return err('Listing not found', 404);
+      const { data: product } = await supabase.from('products').select('*').eq('id', listing.product_id).single();
+
+      const group = listing.platform.startsWith('facebook') ? 'facebook' : listing.platform;
+
+      if (group === 'craigslist') {
+        // Craigslist has no posting API and forbids bots — assisted flow only.
+        return json({
+          mode: 'assisted',
+          url: 'https://post.craigslist.org/',
+          message: 'Craigslist has no posting API. Your ad text is ready — paste it into their form.',
+        });
+      }
+      if (!['ebay', 'facebook'].includes(group)) {
+        return err(`Auto-posting to ${group} is not supported — no public posting API`, 400);
+      }
+
+      const { data: cred } = await supabase
+        .from('marketplace_credentials')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('platform', group)
+        .eq('is_connected', 1)
+        .maybeSingle();
+      if (!cred) return err(`Connect ${group} in Settings → Marketplace Credentials first`, 400);
+
+      try {
+        const publishedUrl =
+          group === 'ebay'
+            ? await publishToEbay(listing, product, cred)
+            : await publishToFacebookPage(listing, product, cred);
+        await supabase.from('listings').update({ status: 'published', published_url: publishedUrl }).eq('id', listing.id);
+        return json({ mode: 'auto', published_url: publishedUrl });
+      } catch (e) {
+        return err(e instanceof Error ? e.message : 'Publish failed', 502);
+      }
     }
 
     // ---- analytics
