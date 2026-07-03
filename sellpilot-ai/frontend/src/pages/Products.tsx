@@ -52,7 +52,40 @@ export default function Products() {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [aiFilled, setAiFilled] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Module 1: Claude vision reads the photos and pre-fills the whole form.
+  async function analyzePhotos() {
+    if (!files.length) return;
+    setAnalyzing(true);
+    try {
+      const fd = new FormData();
+      files.slice(0, 5).forEach((f) => fd.append('images', f));
+      const res = await api.post('/ai/analyze-images', fd);
+      const a = res.data.analysis || {};
+      const clean = (v: unknown) => (v && v !== 'undetermined' ? String(v) : '');
+      setForm((f) => ({
+        ...f,
+        name: clean(a.product_name) || f.name,
+        brand: clean(a.brand) || f.brand,
+        category: CATEGORIES.includes(a.category) ? a.category : f.category,
+        condition: CONDITIONS.includes(a.condition) ? a.condition : f.condition,
+        retail_price: a.estimated_retail_price ? String(a.estimated_retail_price) : f.retail_price,
+        specs: [clean(a.model_number) && `Model: ${a.model_number}`, clean(a.dimensions), clean(a.color_finish), clean(a.specs), (a.key_features || []).join(', ')]
+          .filter(Boolean).join('\n') || f.specs,
+        notes: [clean(a.description), clean(a.condition_notes) && `Condition notes: ${a.condition_notes}`, a.best_buyer_types?.length && `Best buyers: ${a.best_buyer_types.join(', ')}`]
+          .filter(Boolean).join('\n\n') || f.notes,
+      }));
+      setAiFilled(true);
+      toast('success', 'Photos analyzed', 'Fields pre-filled — review and adjust anything before saving.');
+    } catch (err) {
+      toast('error', 'Analysis failed', apiError(err));
+    } finally {
+      setAnalyzing(false);
+    }
+  }
 
   function load() {
     Promise.all([api.get('/products'), api.get('/listings')])
@@ -83,6 +116,7 @@ export default function Products() {
     setForm(EMPTY_FORM);
     setFiles([]);
     setExistingImages([]);
+    setAiFilled(false);
     setModalOpen(true);
   }
 
@@ -348,6 +382,22 @@ export default function Products() {
               <p className="mt-1 text-xs text-sp-text-muted">Up to 10 images, 10 MB each</p>
               <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
             </div>
+            {files.length > 0 && (
+              <div className={cn(
+                'mt-3 flex items-center justify-between gap-3 rounded-lg border p-3',
+                aiFilled ? 'border-sp-success/40 bg-sp-success/10' : 'border-sp-primary/40 bg-sp-primary/10'
+              )}>
+                <p className="text-xs text-sp-text-secondary">
+                  {aiFilled
+                    ? '✓ AI analyzed your photos and filled the form — double-check before saving.'
+                    : 'Let AI identify the product, condition, specs and price from your photos.'}
+                </p>
+                <Button type="button" size="sm" disabled={analyzing} onClick={analyzePhotos}>
+                  <Sparkles size={13} className={analyzing ? 'animate-pulse' : ''} />
+                  {analyzing ? 'Analyzing…' : aiFilled ? 'Re-analyze' : 'Analyze with AI'}
+                </Button>
+              </div>
+            )}
             {(existingImages.length > 0 || files.length > 0) && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {existingImages.map((img) => (

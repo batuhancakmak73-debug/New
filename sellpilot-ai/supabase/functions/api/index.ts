@@ -286,6 +286,166 @@ async function ownedListing(id: string, userId: number) {
 
 const num = (v: unknown) => (v === undefined || v === null || v === '' ? null : parseFloat(String(v)) || null);
 
+// -------------------------------------------- advanced intelligence (Claude)
+
+async function callClaudeJSON(system: string, content: string | any[], maxTokens = 4000): Promise<Record<string, any>> {
+  const key = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!key) throw new Error('no-anthropic-key');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: Deno.env.get('ANTHROPIC_MODEL') || 'claude-sonnet-5',
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic API error ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  return parseModelJson(data.content[0].text);
+}
+
+async function saveAnalysis(productId: number, kind: string, data: unknown) {
+  await supabase.from('ai_analyses').upsert(
+    { product_id: productId, kind, data },
+    { onConflict: 'product_id,kind' }
+  );
+}
+
+const VISION_PROMPT = `Analyze these product images carefully. Return ONLY a valid JSON object with:
+1. product_name: exact product name (brand, model, size, material — be specific)
+2. brand: manufacturer brand name
+3. model_number: any visible model/SKU/serial numbers
+4. category: best fit from (Building Materials, Solar, Appliances, Furniture, Mattresses, Tools, Wardrobes)
+5. condition: one of (New, Like New, Used, Refurbished) with a "condition_confidence" percent
+6. dimensions: any visible dimensions with unit
+7. color_finish: colors, materials, finishes visible
+8. key_features: array of 5-8 key features visible in the photos
+9. specs: technical specs detectable (voltage, capacity, weight, etc.) as one string
+10. estimated_retail_price: research-based estimate of current retail price in USD (number)
+11. description: detailed, accurate paragraph suitable for marketplace listings
+12. best_buyer_types: array of likely buyers (Contractors, Homeowners, Flippers, Hotels, etc.)
+13. condition_notes: visible defects, scratches, wear, damage
+Be honest about condition. Do not overstate quality. Use "undetermined" for anything you cannot determine.`;
+
+// Real market comps from the eBay Browse API using the user's eBay app
+// credentials (client-credentials grant — no user consent needed for search).
+async function ebayComps(cred: any, query: string): Promise<{ title: string; price: number; condition: string; url: string }[]> {
+  const res = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${btoa(`${cred.api_key}:${cred.api_secret}`)}`,
+    },
+    body: new URLSearchParams({ grant_type: 'client_credentials', scope: 'https://api.ebay.com/oauth/api_scope' }),
+  });
+  const tok = await res.json().catch(() => ({}));
+  if (!tok.access_token) return [];
+  const search = await fetch(
+    `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(query)}&limit=25`,
+    { headers: { Authorization: `Bearer ${tok.access_token}`, 'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US' } }
+  ).then((r) => r.json()).catch(() => ({}));
+  return (search.itemSummaries || [])
+    .filter((i: any) => i.price?.value)
+    .map((i: any) => ({
+      title: i.title,
+      price: parseFloat(i.price.value),
+      condition: i.condition || 'Unknown',
+      url: i.itemWebUrl || '',
+    }));
+}
+
+function pricingFallback(product: any, comps: any[]): Record<string, any> {
+  const prices = comps.map((c) => c.price).filter((p) => p > 0);
+  const retail = parseFloat(product.retail_price) || (prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length / 0.8 : 100);
+  const sorted = [...prices].sort((a, b) => a - b);
+  const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : retail * 0.8;
+  const low = sorted.length ? sorted[0] : retail * 0.6;
+  const high = sorted.length ? sorted[sorted.length - 1] : retail;
+  return {
+    market_low: Math.round(low), market_high: Math.round(high),
+    market_average: Math.round(prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : retail * 0.8),
+    market_median: Math.round(median),
+    active_count: comps.length,
+    demand_level: comps.length > 15 ? 'high' : comps.length > 5 ? 'medium' : 'low',
+    price_trend: 'stable',
+    suggested_asking_price: Math.round(median * 0.65),
+    floor_price: Math.round(low * 0.85),
+    bulk_discounts: { '3+': '10%', '5+': '15%', '10+': '20%' },
+    positioning: median * 0.65 < low * 0.95 ? 'price_leader' : 'value_priced',
+    est_days_to_sell: comps.length > 15 ? '5-8 days' : '7-14 days',
+    urgency_discount: '5-10% if selling within 7 days',
+    competitor_snapshot: comps.slice(0, 6).map((c) => ({ title: c.title.slice(0, 60), price: c.price, url: c.url })),
+    source: comps.length ? 'ebay-live' : 'heuristic',
+  };
+}
+
+function groupsFallback(product: any): Record<string, any> {
+  const loc = product.location || 'your area';
+  const cat = product.category || 'general';
+  return {
+    groups: [
+      { group_name: `${loc} Buy Sell Trade`, category: 'Local Buy/Sell', estimated_members: '10K-50K', relevance_score: 9, best_posting_time: 'Mon/Wed/Fri 7-9 PM', post_type: 'Direct sale with price in title', rules_to_follow: 'Price and location required in post', words_to_avoid: 'FREE, all caps, multiple exclamation marks', engagement_tip: 'Reply to every comment within the first hour' },
+      { group_name: `${loc} Marketplace`, category: 'Local Buy/Sell', estimated_members: '5K-30K', relevance_score: 8, best_posting_time: 'Sat/Sun 9-11 AM', post_type: 'Photo-first, short text', rules_to_follow: 'One post per item per week', words_to_avoid: 'Spammy urgency words', engagement_tip: 'Post multiple photos — listings with 4+ photos get more replies' },
+      { group_name: `${cat} Deals & Resale`, category: 'Category', estimated_members: '10K-100K', relevance_score: 8, best_posting_time: 'Tue/Thu evenings', post_type: 'Specs-first with bulk pricing', rules_to_follow: 'No affiliate links', words_to_avoid: 'CHEAP', engagement_tip: 'Mention retail price vs your price' },
+      { group_name: `Contractors of ${loc}`, category: 'Contractor', estimated_members: '5K-20K', relevance_score: 7, best_posting_time: 'Tue/Thu 6-8 AM', post_type: 'Specs-first, professional tone', rules_to_follow: 'Business-relevant posts only', words_to_avoid: 'Emojis, casual language', engagement_tip: 'Lead with quantity available and bulk pricing' },
+      { group_name: `${loc} Türk Topluluğu`, category: 'Community', estimated_members: '2K-15K', relevance_score: 6, best_posting_time: 'Weekend mornings', post_type: 'Friendly, community tone in Turkish', rules_to_follow: 'Be respectful, introduce yourself', words_to_avoid: 'Hard-sell language', engagement_tip: 'Use the Turkish listing version from the wizard' },
+      { group_name: 'Wholesale & Bulk Buyers USA', category: 'Wholesale', estimated_members: '20K-80K', relevance_score: 6, best_posting_time: 'Weekday mornings', post_type: 'Quantity + unit economics up front', rules_to_follow: 'Include MOQ and location', words_to_avoid: 'Retail-style hype', engagement_tip: 'State pallet/lot quantities clearly' },
+    ],
+    note: 'Template suggestions — add your Anthropic key for product-specific group research, and verify each group exists by searching its name on Facebook.',
+  };
+}
+
+function engagementFallback(product: any): Record<string, any> {
+  const name = product.name;
+  const loc = product.location || 'local';
+  return {
+    headlines: {
+      version_a: `${name} — priced to move this week`,
+      version_b: `Save big vs retail: ${name}`,
+      version_c: `${product.condition || 'Quality'} ${name}, honest condition photos`,
+      version_d: `Only ${product.quantity || 1} left: ${name}`,
+      best_for: 'Version B for homeowners, Version A for flippers and contractors',
+    },
+    optimal_posting: {
+      best_days: ['Monday', 'Wednesday', 'Saturday'],
+      best_times: ['7:00 PM', '9:00 AM'],
+      frequency: 'Post 2x per week, 48+ hours apart',
+      avoid_days: ['Friday evening', 'Sunday late night'],
+    },
+    hashtag_set: {
+      high_volume: ['#forsale', '#marketplace', '#deal'],
+      niche: [`#${String(product.category || 'resale').replace(/\s+/g, '').toLowerCase()}`, '#warehousedeal', '#bulkpricing'],
+      local: [`#${loc.replace(/[^a-zA-Z]/g, '')}`, '#shoplocal'],
+      recommended_count: '5-8 for Facebook, 15-20 for Instagram',
+    },
+    content_hooks: [
+      `Retail is ~$${product.retail_price || '—'} — this one is a fraction of that.`,
+      'Who needs this for their next project?',
+      `First come, first served — ${product.quantity || 1} available.`,
+    ],
+    visual_strategy: {
+      hero_image: 'Clean front shot, neutral background, good light',
+      photo_2: 'Close-up of label / model number',
+      photo_3: 'In-context or installed shot',
+      photo_4: 'Scale reference next to a common object',
+      photo_5: 'Honest condition shot of any wear',
+    },
+    engagement_tactics: [
+      'Ask a question at the end of the post',
+      'Mention how many are already sold or reserved',
+      'Offer same-day pickup as a bonus',
+    ],
+    response_templates: {
+      first_hour: 'Thanks for reaching out! It is still available — when could you pick up?',
+      price_inquiry: `I'm asking $__ and the floor is firm for pickup this week. Fair?`,
+      lowball_offer: 'Appreciate the offer, but I can only flex a little — meet me at $__ and it is yours today.',
+    },
+    source: 'template',
+  };
+}
+
 // -------------------------------------------------- marketplace auto-posting
 
 const xml = (s: unknown) =>
@@ -607,6 +767,121 @@ Deno.serve(async (req) => {
         banner_ideas: content.banner_ideas || [],
         image_ideas: content.image_ideas || [],
       });
+    }
+
+    // ---- AI intelligence: photo analysis (Claude vision)
+    if (path === '/ai/analyze-images' && method === 'POST') {
+      const contentType = req.headers.get('content-type') || '';
+      if (!contentType.includes('multipart/form-data')) return err('Send images as multipart/form-data', 400);
+      const form = await req.formData();
+      const blocks: any[] = [];
+      for (const [, value] of form.entries()) {
+        if (value instanceof File && value.type.startsWith('image/') && blocks.length < 5) {
+          const buf = new Uint8Array(await value.arrayBuffer());
+          let bin = '';
+          for (let i = 0; i < buf.length; i += 0x8000) {
+            bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+          }
+          blocks.push({
+            type: 'image',
+            source: { type: 'base64', media_type: value.type, data: btoa(bin) },
+          });
+        }
+      }
+      if (!blocks.length) return err('No images received', 400);
+      if (!Deno.env.get('ANTHROPIC_API_KEY')) {
+        return err('Photo analysis needs the ANTHROPIC_API_KEY secret set on the backend', 400);
+      }
+      try {
+        const analysis = await callClaudeJSON(
+          'You are an expert product appraiser for marketplace resale. Be precise and honest.',
+          [...blocks, { type: 'text', text: VISION_PROMPT }]
+        );
+        return json({ analysis });
+      } catch (e) {
+        return err(e instanceof Error ? e.message : 'Vision analysis failed', 502);
+      }
+    }
+
+    // ---- AI intelligence: competitive pricing / groups / engagement
+    const intelMatch = path.match(/^\/ai\/(competitive-pricing|discover-groups|engagement-strategy)$/);
+    if (intelMatch && method === 'POST') {
+      const { productId } = await req.json().catch(() => ({}));
+      if (!productId) return err('productId is required', 400);
+      const { data: product } = await supabase.from('products').select('*').eq('id', productId).eq('user_id', user.id).maybeSingle();
+      if (!product) return err('Product not found', 404);
+      const which = intelMatch[1];
+
+      if (which === 'competitive-pricing') {
+        // Real comps from eBay Browse API when the user's eBay app is connected.
+        let comps: any[] = [];
+        const { data: ebayCred } = await supabase
+          .from('marketplace_credentials').select('*')
+          .eq('user_id', user.id).eq('platform', 'ebay').eq('is_connected', 1).maybeSingle();
+        if (ebayCred?.api_key && ebayCred?.api_secret) {
+          comps = await ebayComps(ebayCred, `${product.brand || ''} ${product.name}`.trim()).catch(() => []);
+        }
+        let analysis: Record<string, any>;
+        try {
+          analysis = await callClaudeJSON(
+            'You are a marketplace pricing analyst. Return ONLY valid JSON.',
+            `Product: ${product.brand || ''} ${product.name}, condition ${product.condition || 'used'}, retail ~$${product.retail_price || 'unknown'}, location ${product.location || 'US'}.
+Live eBay comps (title | price | condition): ${comps.slice(0, 20).map((c) => `${c.title} | $${c.price} | ${c.condition}`).join('\n') || 'none available'}
+
+Return JSON: {"market_low":n,"market_high":n,"market_average":n,"market_median":n,"active_count":n,"demand_level":"high|medium|low","price_trend":"rising|falling|stable","suggested_asking_price":n (aim ~65% of median for a quick sale),"floor_price":n,"bulk_discounts":{"3+":"10%","5+":"15%","10+":"20%"},"positioning":"price_leader|value_priced","est_days_to_sell":"...","urgency_discount":"...","competitor_snapshot":[{"title":"...","price":n}],"reasoning":"1-2 sentences"}`
+          );
+          analysis.source = comps.length ? 'ebay-live+claude' : 'claude';
+          if (comps.length && !analysis.competitor_snapshot?.length) {
+            analysis.competitor_snapshot = comps.slice(0, 6).map((c) => ({ title: c.title.slice(0, 60), price: c.price, url: c.url }));
+          }
+        } catch {
+          analysis = pricingFallback(product, comps);
+        }
+        await saveAnalysis(product.id, 'pricing', analysis);
+        return json(analysis);
+      }
+
+      if (which === 'discover-groups') {
+        let result: Record<string, any>;
+        try {
+          result = await callClaudeJSON(
+            'You are an expert at Facebook group marketing for local resale. Return ONLY valid JSON.',
+            `Product: "${product.name}" in category "${product.category || 'general'}", located in "${product.location || 'US'}".
+Find the best Facebook groups to post in. Return JSON {"groups":[...8-12 items...]} where each item has: group_name (realistic searchable name), category, estimated_members, relevance_score (1-10), best_posting_time, post_type, rules_to_follow, words_to_avoid, engagement_tip.
+Mix: 2-3 local buy/sell groups for the location, 2-3 category-specific groups, 1-2 community groups, 1 Turkish community group if relevant, 1 wholesale/bulk group. Sort by relevance_score descending. Add "note":"verify each group by searching its name on Facebook".`
+          );
+          result.source = 'claude';
+        } catch {
+          result = groupsFallback(product);
+        }
+        await saveAnalysis(product.id, 'groups', result);
+        return json(result);
+      }
+
+      // engagement-strategy
+      let strategy: Record<string, any>;
+      try {
+        strategy = await callClaudeJSON(
+          'You are a social media engagement expert specializing in marketplace selling. Return ONLY valid JSON.',
+          `Product: ${product.name} (${product.category || 'general'}), condition ${product.condition || 'used'}, location ${product.location || 'US'}, quantity ${product.quantity}.
+Return JSON with keys: headlines {version_a (urgency angle), version_b (savings angle), version_c (quality angle), version_d (scarcity angle), best_for}, optimal_posting {best_days[], best_times[], frequency, avoid_days[]}, hashtag_set {high_volume[], niche[], local[], recommended_count}, content_hooks[3], visual_strategy {hero_image, photo_2, photo_3, photo_4, photo_5}, engagement_tactics[3], response_templates {first_hour, price_inquiry, lowball_offer}.`
+        );
+        strategy.source = 'claude';
+      } catch {
+        strategy = engagementFallback(product);
+      }
+      await saveAnalysis(product.id, 'engagement', strategy);
+      return json(strategy);
+    }
+
+    // ---- cached analyses
+    if (path === '/ai/analyses' && method === 'GET') {
+      const productId = url.searchParams.get('product_id');
+      if (!productId) return err('product_id is required', 400);
+      const { data: product } = await supabase.from('products').select('id').eq('id', productId).eq('user_id', user.id).maybeSingle();
+      if (!product) return err('Product not found', 404);
+      const { data } = await supabase.from('ai_analyses').select('kind, data, created_at').eq('product_id', productId);
+      return json(Object.fromEntries((data || []).map((r: any) => [r.kind, r.data])));
     }
 
     // ---- listings
