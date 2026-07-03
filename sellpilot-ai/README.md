@@ -33,7 +33,14 @@ npm run dev                 # http://localhost:5173 (proxies /api + /uploads to 
 
 Register an account, add a product with photos, then hit **Generate Listings** — the 4-step wizard takes it from there.
 
-> **No OpenAI key?** The app still works end-to-end: `/api/ai/generate` falls back to a deterministic local copywriter so you can demo every feature. Set `OPENAI_API_KEY` in `backend/.env` for real GPT-4o generation.
+> **No AI key?** The app still works end-to-end: `/api/ai/generate` falls back to a deterministic local copywriter. Set `ANTHROPIC_API_KEY` (Claude) or `OPENAI_API_KEY` (GPT-4o) for real AI generation.
+
+## Production deployment (live setup)
+
+- **Frontend — Vercel**: the root `vercel.json` builds `frontend/` and serves it as an SPA. Production builds talk to the Supabase Edge Function backend automatically (override with `VITE_API_URL`).
+- **Backend — Supabase Edge Function**: `supabase/functions/api/index.ts` is the same API ported to Deno, using Postgres and Supabase Storage (bucket `product-images`) instead of SQLite and local disk. Deploy with `supabase functions deploy api`. App JWTs are sent in the `x-sp-token` header because the platform gateway reserves `Authorization` for the Supabase anon key.
+- **AI**: set the `ANTHROPIC_API_KEY` secret on the Edge Function (Dashboard → Edge Functions → Secrets) to enable Claude generation; `OPENAI_API_KEY` also works. Without either, the template fallback is used.
+- The Express backend in `backend/` remains the local-dev server (`node server.js` + Vite proxy).
 
 ## Backend API
 

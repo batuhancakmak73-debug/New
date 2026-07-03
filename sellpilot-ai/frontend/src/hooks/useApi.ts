@@ -1,15 +1,30 @@
 import axios from 'axios';
 
-// In dev the Vite proxy forwards /api to localhost:3001. In production
-// (e.g. frontend on Vercel, backend on Render) set VITE_API_URL to the
-// backend origin, like https://sellpilot-backend.onrender.com
-export const API_ORIGIN = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+// Production backend: the SellPilot Supabase Edge Function. The anon key is
+// Supabase's publishable client key (safe to embed); it only satisfies the
+// platform gateway — app auth is our own JWT sent in x-sp-token.
+const SUPABASE_FUNCTIONS_ORIGIN = 'https://vevwlaavvxftnuwmnbwz.supabase.co/functions/v1';
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZldndsYWF2dnhmdG51d21uYnd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNDE1ODQsImV4cCI6MjA5ODYxNzU4NH0.zoD3UbLNQ8mMNgwa2ElhtMYOU-uAeg7vZElXCfjYFCY';
+
+// Dev: empty origin -> Vite proxies /api to the local Express backend.
+// Override either mode with VITE_API_URL.
+export const API_ORIGIN = (
+  import.meta.env.VITE_API_URL || (import.meta.env.PROD ? SUPABASE_FUNCTIONS_ORIGIN : '')
+).replace(/\/$/, '');
+
+const isSupabase = API_ORIGIN.includes('.supabase.co');
 
 export const api = axios.create({ baseURL: `${API_ORIGIN}/api` });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('sp_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (isSupabase) {
+    config.headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+    if (token) config.headers['x-sp-token'] = token;
+  } else if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 

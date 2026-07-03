@@ -55,5 +55,8 @@ export function initials(name: string): string {
 const API_ORIGIN = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
 export function imageUrl(filename?: string | null): string | null {
-  return filename ? `${API_ORIGIN}/uploads/${filename}` : null;
+  if (!filename) return null;
+  // Supabase Storage stores full public URLs; the local backend stores bare filenames.
+  if (/^https?:\/\//.test(filename)) return filename;
+  return `${API_ORIGIN}/uploads/${filename}`;
 }
