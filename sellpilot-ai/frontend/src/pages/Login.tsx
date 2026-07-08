@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SocialButtons } from '@/components/SocialButtons';
 
 export default function Login() {
   const { login } = useAuth();
@@ -54,6 +55,7 @@ export default function Login() {
               {error && <p className="text-sm text-sp-danger">{error}</p>}
               <Button type="submit" className="w-full" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</Button>
             </form>
+            <SocialButtons />
             <p className="mt-5 text-center text-sm text-sp-text-secondary">
               No account?{' '}
               <Link to="/register" className="text-sp-primary-light hover:underline">Sign up</Link>

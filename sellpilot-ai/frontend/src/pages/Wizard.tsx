@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import {
-  ArrowLeft, ArrowRight, Check, CheckCircle2, ImageIcon, Lightbulb, MapPin,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, Eye, ImageIcon, Lightbulb, MapPin,
   Package, Rocket, Sparkles, Tag,
 } from 'lucide-react';
 import { api, apiError } from '@/hooks/useApi';
@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { PlatformBadge } from '@/components/PlatformBadge';
+import { AdPreview } from '@/components/AdPreview';
 import {
   BannerStudioPanel, EngagementOptimizerPanel, GroupDiscoveryPanel, PricingIntelligencePanel, RewriteBar,
 } from '@/components/WizardIntelligence';
@@ -66,6 +67,7 @@ export default function Wizard() {
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('10:00');
   const [publishing, setPublishing] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const genTimers = useRef<number[]>([]);
 
   useEffect(() => {
@@ -439,10 +441,19 @@ export default function Wizard() {
                 </div>
               )}
 
-              <div className="mt-6 flex justify-between">
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
                 <Button variant="secondary" onClick={() => setStep(1)}><ArrowLeft size={15} /> Back</Button>
-                <Button onClick={async () => { await saveEdits(); setStep(3); }}>Next: Schedule <ArrowRight size={15} /></Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setPreviewOpen(true)}><Eye size={15} /> Preview full ad</Button>
+                  <Button onClick={async () => { await saveEdits(); setStep(3); }}>Next: Schedule <ArrowRight size={15} /></Button>
+                </div>
               </div>
+              <AdPreview
+                open={previewOpen}
+                onOpenChange={setPreviewOpen}
+                listing={activeListing || null}
+                productId={product?.id}
+              />
             </CardContent>
           </Card>
         </div>

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SocialButtons } from '@/components/SocialButtons';
 
 export default function Register() {
   const { register } = useAuth();
@@ -67,6 +68,7 @@ export default function Register() {
               {error && <p className="text-sm text-sp-danger">{error}</p>}
               <Button type="submit" className="w-full" disabled={busy}>{busy ? 'Creating account…' : 'Sign up'}</Button>
             </form>
+            <SocialButtons />
             <p className="mt-5 text-center text-sm text-sp-text-secondary">
               Already have an account?{' '}
               <Link to="/login" className="text-sp-primary-light hover:underline">Log in</Link>

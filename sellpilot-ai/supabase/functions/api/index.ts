@@ -550,6 +550,12 @@ const ASSET_SCENES: { key: string; prompt: string }[] = [
   { key: 'seasonal', prompt: 'an inviting seasonal outdoor setting appropriate for the current time of year' },
 ];
 
+const AD_BANNER_SCENES: { key: string; prompt: string }[] = [
+  { key: 'ad_bold', prompt: 'a bold, high-energy promotional advertisement background with dramatic studio lighting and a vibrant gradient backdrop; wide 16:9 banner composition, the product placed on the right half, clean empty dark negative space on the left half for advertising text' },
+  { key: 'ad_premium', prompt: 'an elegant premium advertisement background with a dark luxurious backdrop, soft rim lighting and a reflective floor; wide 16:9 banner composition, the product on the right half, clean empty dark negative space on the left half for advertising text' },
+  { key: 'ad_lifestyle', prompt: 'a warm aspirational lifestyle advertisement scene with the product in an attractive real setting; wide 16:9 banner composition, the product on the right half, softly blurred darker negative space on the left half for advertising text' },
+];
+
 function fidelityPrompt(productDesc: string, scenePrompt: string): string {
   return `These reference photos show the EXACT product being sold: ${productDesc}. Create one photorealistic marketing photo of THIS EXACT product placed in ${scenePrompt}. Critical requirements: the product must stay pixel-faithful to the reference photos — identical model, shape, proportions, colors, materials, control panels, logos, stickers, labels and condition. Do not substitute a similar product, do not redesign or restyle it, do not change its finish. No added text, no watermarks, no people.`;
 }
@@ -821,6 +827,63 @@ Deno.serve(async (req) => {
     }
 
     // ---- everything below requires auth
+    // ---- social sign-in (Google / Facebook), public routes
+    if (path === '/auth/oauth-config' && method === 'GET') {
+      return json({
+        google: Deno.env.get('GOOGLE_CLIENT_ID') || null,
+        facebook: Deno.env.get('FB_APP_ID') || null,
+      });
+    }
+
+    if (path === '/auth/oauth' && method === 'POST') {
+      const { provider, token } = await req.json().catch(() => ({}));
+      if (!provider || !token) return err('provider and token are required', 400);
+      let email = '';
+      let name = '';
+
+      if (provider === 'google') {
+        const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
+        if (!clientId) return err('Google sign-in is not configured (GOOGLE_CLIENT_ID secret missing)', 400);
+        const info = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(token)}`
+        ).then((r) => r.json()).catch(() => ({}));
+        if (!info.email || info.aud !== clientId) return err('Invalid Google token', 401);
+        email = info.email;
+        name = info.name || info.email.split('@')[0];
+      } else if (provider === 'facebook') {
+        const appId = Deno.env.get('FB_APP_ID');
+        const appSecret = Deno.env.get('FB_APP_SECRET');
+        if (!appId) return err('Facebook sign-in is not configured (FB_APP_ID secret missing)', 400);
+        if (appSecret) {
+          const dbg = await fetch(
+            `https://graph.facebook.com/debug_token?input_token=${encodeURIComponent(token)}&access_token=${appId}|${appSecret}`
+          ).then((r) => r.json()).catch(() => ({}));
+          if (!dbg.data?.is_valid || String(dbg.data.app_id) !== String(appId)) return err('Invalid Facebook token', 401);
+        }
+        const me = await fetch(
+          `https://graph.facebook.com/me?fields=id,name,email&access_token=${encodeURIComponent(token)}`
+        ).then((r) => r.json()).catch(() => ({}));
+        if (!me.id) return err('Invalid Facebook token', 401);
+        email = me.email || `fb_${me.id}@facebook.local`;
+        name = me.name || 'Facebook User';
+      } else {
+        return err('Apple sign-in requires an Apple Developer account and is not configured yet', 400);
+      }
+
+      let { data: existingUser } = await supabase
+        .from('users').select('id, email, name, company, created_at').eq('email', email.toLowerCase()).maybeSingle();
+      if (!existingUser) {
+        const { data: created, error } = await supabase
+          .from('users')
+          .insert({ email: email.toLowerCase(), password_hash: `oauth:${provider}`, name })
+          .select('id, email, name, company, created_at')
+          .single();
+        if (error) return err(error.message, 500);
+        existingUser = created;
+      }
+      return json({ token: await signToken(existingUser), user: existingUser });
+    }
+
     const user = await getUser(req);
     if (!user) return err('Authentication required', 401);
 
@@ -1105,7 +1168,7 @@ Keep every fact accurate. Title max ${maxTitle} characters. Keep the platform's 
 
     // ---- AI intelligence: environment shots from the real product photo
     if (path === '/ai/generate-assets' && method === 'POST') {
-      const { productId } = await req.json().catch(() => ({}));
+      const { productId, mode, scenes } = await req.json().catch(() => ({}));
       if (!productId) return err('productId is required', 400);
       const { data: product } = await supabase.from('products').select('*').eq('id', productId).eq('user_id', user.id).maybeSingle();
       if (!product) return err('Product not found', 404);
@@ -1130,31 +1193,44 @@ Keep every fact accurate. Title max ${maxTitle} characters. Keep the platform's 
       const productDesc = [product.brand, product.name, product.specs ? `(${String(product.specs).slice(0, 200)})` : '']
         .filter(Boolean).join(' ');
 
+      const pool = mode === 'adbanners' ? AD_BANNER_SCENES : ASSET_SCENES;
+      const wanted = Array.isArray(scenes) && scenes.length
+        ? pool.filter((sc) => scenes.includes(sc.key))
+        : pool;
+      if (!wanted.length) return err('No valid scenes requested', 400);
+
       const results = await Promise.all(
-        ASSET_SCENES.map((scene) =>
+        wanted.map((scene) =>
           useGemini
             ? geminiEnvironmentShot(refs, productDesc, scene)
             : openaiEnvironmentShot(refs, productDesc, scene)
         )
       );
 
-      const assets: { type: string; url: string }[] = [];
-      for (let i = 0; i < ASSET_SCENES.length; i++) {
+      const fresh: { type: string; url: string }[] = [];
+      for (let i = 0; i < wanted.length; i++) {
         const b64 = results[i];
         if (!b64) continue;
         const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-        const path = `${user.id}/generated/${product.id}-${ASSET_SCENES[i].key}-${Date.now()}.png`;
+        const path = `${user.id}/generated/${product.id}-${wanted[i].key}-${Date.now()}.png`;
         const { error } = await supabase.storage.from('product-images').upload(path, bin, { contentType: 'image/png' });
         if (!error) {
-          assets.push({
-            type: ASSET_SCENES[i].key,
+          fresh.push({
+            type: wanted[i].key,
             url: supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl,
           });
         }
       }
-      if (!assets.length) return err('Image generation failed for every scene — check the OpenAI key and try again', 502);
+      if (!fresh.length) return err('Image generation failed for every scene — check the AI key and try again', 502);
+
+      // Merge with cached assets so single-scene regeneration replaces
+      // only that scene.
+      const { data: existingRow } = await supabase
+        .from('ai_analyses').select('data').eq('product_id', product.id).eq('kind', 'assets').maybeSingle();
+      const prev: { type: string; url: string }[] = existingRow?.data?.assets || [];
+      const assets = [...prev.filter((a) => !fresh.some((n) => n.type === a.type)), ...fresh];
       await saveAnalysis(product.id, 'assets', { assets, generated_at: new Date().toISOString() });
-      return json({ assets });
+      return json({ assets, generated: fresh });
     }
 
     // ---- cached analyses
