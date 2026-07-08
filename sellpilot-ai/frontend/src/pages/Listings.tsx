@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Copy, ExternalLink, List, Pencil, Plus, Search, Send, Trash2 } from 'lucide-react';
+import { Copy, ExternalLink, Eye, List, Pencil, Plus, Search, Send, Trash2 } from 'lucide-react';
 import { api, apiError } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { PlatformBadge } from '@/components/PlatformBadge';
 import { StatusBadge } from '@/components/StatusBadge';
 import { cn, imageUrl, PLATFORM_META } from '@/lib/utils';
 import { RewriteBar } from '@/components/WizardIntelligence';
+import { AdPreview } from '@/components/AdPreview';
 
 const PLATFORM_TABS = [
   { value: 'all', label: 'All' },
@@ -38,6 +39,7 @@ export default function Listings() {
   const [status, setStatus] = useState('all');
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<any | null>(null);
+  const [previewing, setPreviewing] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
 
   function load() {
@@ -201,6 +203,7 @@ export default function Listings() {
                       <Send size={14} className={posting === l.id ? 'animate-pulse text-sp-text-muted' : 'text-sp-primary-light'} />
                     </Button>
                   )}
+                  <Button variant="ghost" size="icon" title="Preview full ad" onClick={() => setPreviewing(l)}><Eye size={14} /></Button>
                   <Button variant="ghost" size="icon" title="Edit" onClick={() => setEditing({ ...l })}><Pencil size={14} /></Button>
                   <Button variant="ghost" size="icon" title="Duplicate" onClick={() => duplicate(l)}><Copy size={14} /></Button>
                   <Button variant="ghost" size="icon" title="Delete" onClick={() => remove(l)}><Trash2 size={14} className="text-sp-danger" /></Button>
@@ -210,6 +213,13 @@ export default function Listings() {
           ))}
         </div>
       )}
+
+      <AdPreview
+        open={Boolean(previewing)}
+        onOpenChange={(o) => !o && setPreviewing(null)}
+        listing={previewing}
+        productId={previewing?.product_id}
+      />
 
       {/* Edit dialog */}
       <Dialog open={Boolean(editing)} onOpenChange={(o) => !o && setEditing(null)} title="Edit Listing" className="max-w-2xl">

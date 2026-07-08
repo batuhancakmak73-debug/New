@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ChevronDown, Copy, Download, ImageIcon, LineChart, Megaphone, Sparkles, Users,
+  ChevronDown, Copy, Download, ImageIcon, LineChart, Megaphone, RefreshCw, Sparkles, Users,
 } from 'lucide-react';
 import { api, apiError } from '@/hooks/useApi';
 import { useToast } from '@/components/ui/toast';
@@ -326,6 +326,9 @@ const SCENE_LABELS: Record<string, string> = {
   jobsite: 'Jobsite / Warehouse',
   detail: 'Detail Spotlight',
   seasonal: 'Seasonal Scene',
+  ad_bold: 'Bold Ad Backdrop',
+  ad_premium: 'Premium Ad Backdrop',
+  ad_lifestyle: 'Lifestyle Ad Backdrop',
 };
 
 const BANNER_FONTS = [
@@ -439,16 +442,136 @@ export function BannerStudioPanel({ product, pricing }: { product: any; pricing:
           </div>
         </>
       )}
+      <AiAdBanners product={product} pricing={pricing} style={style} />
       <EnvironmentShots product={product} />
     </Panel>
   );
 }
 
+// AI-designed ad banners: Gemini/OpenAI paint a real ad scene around the
+// exact product (bold / premium / lifestyle looks), then the headline,
+// price and CTA are drawn on top with the same style controls as above —
+// so both quick banners and AI ad banners are always available side by side.
+function AiAdBanners({
+  product, pricing, style,
+}: {
+  product: any;
+  pricing: any;
+  style: { accent: string; font: string; headline: string; priceText: string };
+}) {
+  const { toast } = useToast();
+  const [raw, setRaw] = useState<{ type: string; url: string }[]>([]);
+  const [composed, setComposed] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null); // 'all' or a scene key
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const ask = pricing?.suggested_ask || pricing?.suggested_asking_price || Math.round((product?.retail_price || 100) * 0.65);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    api.get(`/ai/analyses?product_id=${product.id}`)
+      .then((res) => setRaw(((res.data.assets?.assets || []) as any[]).filter((a) => a.type.startsWith('ad_'))))
+      .catch(() => {});
+  }, [product?.id]);
+
+  // Re-draw the text overlay whenever the backdrops or the style controls change.
+  useEffect(() => {
+    if (!raw.length || !canvasRef.current) return;
+    let cancelled = false;
+    (async () => {
+      const out: Record<string, string> = {};
+      for (const a of raw) {
+        try {
+          const img = await loadImage(a.url);
+          out[a.type] = drawAdBanner(canvasRef.current!, img, {
+            accent: style.accent || '#5B6EF5',
+            font: style.font,
+            title: style.headline || product.name,
+            price: style.priceText || `$${ask}`,
+            location: product.location || '',
+          });
+        } catch { /* keep the raw backdrop if it can't be composed */ }
+      }
+      if (!cancelled) setComposed(out);
+    })();
+    return () => { cancelled = true; };
+  }, [raw, style, product?.name, product?.location, ask]);
+
+  async function generate(scenes?: string[]) {
+    setBusy(scenes?.[0] || 'all');
+    try {
+      const res = await api.post('/ai/generate-assets', {
+        productId: product.id, mode: 'adbanners', ...(scenes ? { scenes } : {}),
+      });
+      setRaw(((res.data.assets || []) as any[]).filter((a) => a.type.startsWith('ad_')));
+      toast('success', scenes ? 'Banner regenerated' : 'AI ad banners ready');
+    } catch (err) {
+      toast('error', 'Ad banner generation failed', apiError(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="mt-4 border-t border-sp-active/30 pt-4">
+      <canvas ref={canvasRef} width={1200} height={630} className="hidden" />
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-semibold text-sp-text-secondary">AI ad-style banners</span>
+        {raw.length > 0 && (
+          <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => generate()}>
+            {busy === 'all' ? 'Designing…' : 'Regenerate all'}
+          </Button>
+        )}
+      </div>
+      {raw.length === 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs text-sp-text-muted">
+            AI designs a real ad scene around your exact product — bold, premium and lifestyle looks —
+            then your headline, price and colors are laid on top. Each banner can be regenerated
+            individually. Takes up to a minute.
+          </p>
+          <Button size="sm" variant="secondary" disabled={busy !== null} onClick={() => generate()}>
+            <Sparkles size={13} className={busy ? 'animate-pulse' : ''} />
+            {busy === 'all' ? 'Designing (up to a minute)…' : 'Generate AI ad banners'}
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {raw.map((a) => (
+            <div key={a.type} className="overflow-hidden rounded-lg border border-sp-active/40">
+              <img src={composed[a.type] || a.url} alt={a.type} className="w-full" />
+              <div className="flex items-center justify-between p-2">
+                <span className="text-[11px] text-sp-text-secondary">{SCENE_LABELS[a.type] || a.type}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    title="Regenerate this banner with AI"
+                    disabled={busy !== null}
+                    onClick={() => generate([a.type])}
+                    className="text-sp-text-muted hover:text-sp-text disabled:opacity-50"
+                  >
+                    <RefreshCw size={13} className={busy === a.type ? 'animate-spin' : ''} />
+                  </button>
+                  <a href={composed[a.type] || a.url} download={`${a.type}-banner.png`} className="text-sp-primary-light hover:text-sp-primary">
+                    <Download size={13} />
+                  </a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // AI environment shots: the real product photo edited into 5 new scenes.
+// Each shot can be regenerated on its own without touching the others.
 function EnvironmentShots({ product }: { product: any }) {
   const { toast } = useToast();
   const [assets, setAssets] = useState<{ type: string; url: string }[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null); // 'all' or a scene key
+
+  const shots = assets.filter((a) => !a.type.startsWith('ad_')); // ad backdrops live in the banner section
 
   useEffect(() => {
     if (!product?.id) return;
@@ -457,54 +580,70 @@ function EnvironmentShots({ product }: { product: any }) {
       .catch(() => {});
   }, [product?.id]);
 
-  async function generate() {
-    setBusy(true);
+  async function generate(scenes?: string[]) {
+    setBusy(scenes?.[0] || 'all');
     try {
-      const res = await api.post('/ai/generate-assets', { productId: product.id });
+      const res = await api.post('/ai/generate-assets', {
+        productId: product.id, ...(scenes ? { scenes } : {}),
+      });
       setAssets(res.data.assets);
-      toast('success', `${res.data.assets.length} environment shots ready`);
+      toast('success', scenes ? 'Shot regenerated' : 'Environment shots ready');
     } catch (err) {
       toast('error', 'Shot generation failed', apiError(err));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
   return (
     <div className="mt-4 border-t border-sp-active/30 pt-4">
-      <div className="mb-2 text-xs font-semibold text-sp-text-secondary">AI environment shots</div>
-      {assets.length === 0 ? (
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-semibold text-sp-text-secondary">AI environment shots</span>
+        {shots.length > 0 && (
+          <Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => generate()}>
+            {busy === 'all' ? 'Generating…' : 'Regenerate all'}
+          </Button>
+        )}
+      </div>
+      {shots.length === 0 ? (
         <div className="space-y-2">
           <p className="text-xs text-sp-text-muted">
             Places your exact product (using up to 3 of your photos as reference) into 5 new scenes —
             studio, home, jobsite, detail spotlight and seasonal. Works best with a GEMINI_API_KEY
             (free at aistudio.google.com); OPENAI_API_KEY also supported. Takes ~60s.
           </p>
-          <Button size="sm" variant="secondary" disabled={busy} onClick={generate}>
-            <Sparkles size={13} className={busy ? 'animate-pulse' : ''} /> {busy ? 'Generating (up to a minute)…' : 'Generate 5 environment shots'}
+          <Button size="sm" variant="secondary" disabled={busy !== null} onClick={() => generate()}>
+            <Sparkles size={13} className={busy ? 'animate-pulse' : ''} /> {busy === 'all' ? 'Generating (up to a minute)…' : 'Generate 5 environment shots'}
           </Button>
         </div>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2">
-            {assets.map((a) => (
+            {shots.map((a) => (
               <div key={a.type} className="overflow-hidden rounded-lg border border-sp-active/40">
                 <img src={a.url} alt={a.type} className="w-full" />
                 <div className="flex items-center justify-between p-2">
                   <span className="text-[11px] text-sp-text-secondary">{SCENE_LABELS[a.type] || a.type}</span>
-                  <a href={a.url} download target="_blank" rel="noreferrer" className="text-sp-primary-light hover:text-sp-primary">
-                    <Download size={13} />
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <button
+                      title="Regenerate this shot with AI"
+                      disabled={busy !== null}
+                      onClick={() => generate([a.type])}
+                      className="text-sp-text-muted hover:text-sp-text disabled:opacity-50"
+                    >
+                      <RefreshCw size={13} className={busy === a.type ? 'animate-spin' : ''} />
+                    </button>
+                    <a href={a.url} download target="_blank" rel="noreferrer" className="text-sp-primary-light hover:text-sp-primary">
+                      <Download size={13} />
+                    </a>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-2 flex items-center justify-between">
-            <p className="text-[10px] italic text-sp-text-muted">
-              AI-composed scenes from your real photo — keep at least one untouched photo in every listing.
-            </p>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={generate}>Regenerate</Button>
-          </div>
+          <p className="mt-2 text-[10px] italic text-sp-text-muted">
+            AI-composed scenes from your real photo — keep at least one untouched photo in every listing.
+          </p>
         </>
       )}
     </div>
@@ -610,6 +749,84 @@ function drawBanner(
   ctx.fillStyle = '#8B8FA3';
   const footer = [text.location, 'Message for details'].filter(Boolean).join(' · ');
   ctx.fillText(footer, 50, H - 50);
+
+  return canvas.toDataURL('image/png');
+}
+
+// Lays crisp headline / price / CTA text over an AI-designed ad backdrop.
+// The backdrops are generated with empty negative space on the left, and a
+// scrim gradient guarantees readability whatever the AI painted there.
+function drawAdBanner(
+  canvas: HTMLCanvasElement,
+  img: HTMLImageElement,
+  opts: { accent: string; font: string; title: string; price: string; location: string }
+): string {
+  const ctx = canvas.getContext('2d')!;
+  const W = 1200, H = 630;
+  ctx.clearRect(0, 0, W, H);
+
+  // Cover-fit the AI backdrop
+  const scale = Math.max(W / img.width, H / img.height);
+  const sw = W / scale, sh = H / scale;
+  ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, W, H);
+
+  // Left scrim so the text reads over any backdrop
+  const scrim = ctx.createLinearGradient(0, 0, W * 0.62, 0);
+  scrim.addColorStop(0, 'rgba(5,6,12,0.82)');
+  scrim.addColorStop(0.7, 'rgba(5,6,12,0.42)');
+  scrim.addColorStop(1, 'rgba(5,6,12,0)');
+  ctx.fillStyle = scrim;
+  ctx.fillRect(0, 0, W * 0.62, H);
+
+  // Accent bar
+  ctx.fillStyle = opts.accent;
+  ctx.fillRect(0, 0, 10, H);
+
+  // Headline (wrapped, max 3 lines)
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `700 56px ${opts.font}`;
+  const words = opts.title.split(' ');
+  let line = '', y = 150;
+  const maxWidth = W * 0.5;
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, 50, y);
+      line = word;
+      y += 66;
+      if (y > 290) { line += '…'; break; }
+    } else line = test;
+  }
+  ctx.fillText(line, 50, y);
+
+  // Price
+  ctx.font = `700 84px ${opts.font}`;
+  ctx.fillStyle = opts.accent;
+  ctx.fillText(opts.price, 50, y + 120);
+
+  // CTA pill
+  const cta = 'MESSAGE TO BUY';
+  ctx.font = '600 24px Inter, sans-serif';
+  const ctaW = ctx.measureText(cta).width + 48;
+  const ctaY = y + 160;
+  ctx.fillStyle = opts.accent;
+  ctx.beginPath();
+  ctx.moveTo(50 + 26, ctaY);
+  ctx.arcTo(50 + ctaW, ctaY, 50 + ctaW, ctaY + 52, 26);
+  ctx.arcTo(50 + ctaW, ctaY + 52, 50, ctaY + 52, 26);
+  ctx.arcTo(50, ctaY + 52, 50, ctaY, 26);
+  ctx.arcTo(50, ctaY, 50 + ctaW, ctaY, 26);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#0A0B14';
+  ctx.fillText(cta, 74, ctaY + 34);
+
+  // Location footer
+  if (opts.location) {
+    ctx.font = '500 22px Inter, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(opts.location, 50, H - 46);
+  }
 
   return canvas.toDataURL('image/png');
 }
