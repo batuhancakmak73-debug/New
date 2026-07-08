@@ -108,10 +108,26 @@ Create optimized content for each of the following. Return ONLY a valid JSON obj
 }
 
 function parseModelJson(text: string): Record<string, any> {
-  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  const cleaned = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
   const start = cleaned.indexOf('{');
   const end = cleaned.lastIndexOf('}');
-  return JSON.parse(cleaned.slice(start, end + 1));
+  if (start === -1 || end <= start) throw new Error('AI returned no JSON — please try again');
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1));
+  } catch {
+    throw new Error('AI response was cut off or malformed — try again with fewer or smaller photos');
+  }
+}
+
+function extractClaudeText(data: any): string {
+  const block = (data?.content || []).find((b: any) => b?.type === 'text' && typeof b.text === 'string');
+  if (!block) {
+    throw new Error(`AI returned no text (stop_reason: ${data?.stop_reason || 'unknown'}) — please try again`);
+  }
+  if (data.stop_reason === 'max_tokens') {
+    throw new Error('AI response hit the length limit — try again with fewer photos');
+  }
+  return block.text;
 }
 
 async function callAnthropic(product: Record<string, unknown>): Promise<Record<string, any>> {
@@ -131,7 +147,7 @@ async function callAnthropic(product: Record<string, unknown>): Promise<Record<s
   });
   if (!res.ok) throw new Error(`Anthropic API error ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = await res.json();
-  return parseModelJson(data.content[0].text);
+  return parseModelJson(extractClaudeText(data));
 }
 
 async function callOpenAI(product: Record<string, unknown>): Promise<Record<string, any>> {
@@ -303,7 +319,7 @@ async function callClaudeJSON(system: string, content: string | any[], maxTokens
   });
   if (!res.ok) throw new Error(`Anthropic API error ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = await res.json();
-  return parseModelJson(data.content[0].text);
+  return parseModelJson(extractClaudeText(data));
 }
 
 async function saveAnalysis(productId: number, kind: string, data: unknown) {
@@ -835,7 +851,8 @@ Deno.serve(async (req) => {
       try {
         const analysis = await callClaudeJSON(
           'You are an expert product appraiser for marketplace resale. Be precise and honest.',
-          [...blocks, { type: 'text', text: VISION_PROMPT }]
+          [...blocks, { type: 'text', text: VISION_PROMPT }],
+          6000
         );
         return json({ analysis });
       } catch (e) {
