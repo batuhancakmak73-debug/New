@@ -968,6 +968,38 @@ Return JSON with keys: headlines {version_a (urgency angle), version_b (savings 
       return json(strategy);
     }
 
+    // ---- AI intelligence: rewrite one listing's copy on instruction
+    if (path === '/ai/rewrite' && method === 'POST') {
+      const { listing_id, instruction } = await req.json().catch(() => ({}));
+      if (!listing_id) return err('listing_id is required', 400);
+      const listing = await ownedListing(String(listing_id), user.id);
+      if (!listing) return err('Listing not found', 404);
+      if (!Deno.env.get('ANTHROPIC_API_KEY')) {
+        return err('AI rewrite needs the ANTHROPIC_API_KEY secret set on the backend', 400);
+      }
+      const { data: product } = await supabase.from('products').select('*').eq('id', listing.product_id).single();
+      const maxTitle = listing.platform === 'ebay' ? 80 : 150;
+      try {
+        const out = await callClaudeJSON(
+          SYSTEM_PROMPT + ' Return ONLY a valid JSON object {"title":"...","description":"..."} with no commentary.',
+          `Platform: ${listing.platform}. Product facts (do not change them): ${product.brand || ''} ${product.name}, condition ${product.condition || 'used'}, quantity ${product.quantity}, price $${listing.price}, location ${product.location || ''}. Specs: ${product.specs || 'n/a'}.
+
+Current title: ${listing.title}
+Current description:
+${listing.description}
+
+Rewrite instruction: ${instruction || 'improve clarity and conversion'}.
+Keep every fact accurate. Title max ${maxTitle} characters. Keep the platform's style.`
+        );
+        const title = String(out.title || listing.title).slice(0, maxTitle);
+        const description = String(out.description || listing.description);
+        const { data } = await supabase.from('listings').update({ title, description }).eq('id', listing.id).select().single();
+        return json(data);
+      } catch (e) {
+        return err(e instanceof Error ? e.message : 'Rewrite failed', 502);
+      }
+    }
+
     // ---- AI intelligence: environment shots from the real product photo
     if (path === '/ai/generate-assets' && method === 'POST') {
       const { productId } = await req.json().catch(() => ({}));

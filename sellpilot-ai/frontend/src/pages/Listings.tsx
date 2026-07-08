@@ -17,6 +17,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { PlatformBadge } from '@/components/PlatformBadge';
 import { StatusBadge } from '@/components/StatusBadge';
 import { cn, imageUrl, PLATFORM_META } from '@/lib/utils';
+import { RewriteBar } from '@/components/WizardIntelligence';
 
 const PLATFORM_TABS = [
   { value: 'all', label: 'All' },
@@ -225,6 +226,10 @@ export default function Listings() {
             <div>
               <Label>Description</Label>
               <Textarea className="min-h-[220px]" value={editing.description || ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
+              <RewriteBar
+                listingId={editing.id}
+                onRewritten={(l) => setEditing({ ...editing, title: l.title, description: l.description })}
+              />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
