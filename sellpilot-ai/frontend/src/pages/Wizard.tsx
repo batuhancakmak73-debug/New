@@ -54,6 +54,7 @@ export default function Wizard() {
   const [genMessage, setGenMessage] = useState(GEN_MESSAGES[0]);
   const [progress, setProgress] = useState(0);
   const [listings, setListings] = useState<any[]>([]);
+  const [genSource, setGenSource] = useState('');
   const [pricing, setPricing] = useState<any>(null);
   const [bannerIdeas, setBannerIdeas] = useState<string[]>([]);
   const [imageIdeas, setImageIdeas] = useState<string[]>([]);
@@ -102,6 +103,7 @@ export default function Wizard() {
         genTimers.current.push(
           window.setTimeout(() => {
             setListings(res.data.listings);
+            setGenSource(res.data.source || '');
             setPricing(res.data.pricing);
             setBannerIdeas(res.data.banner_ideas);
             setImageIdeas(res.data.image_ideas);
@@ -277,7 +279,19 @@ export default function Wizard() {
                     <CheckCircle2 size={30} />
                   </motion.div>
                   <h2 className="font-heading text-xl font-bold text-sp-success">Generation Complete!</h2>
-                  <p className="mt-2 text-sm text-sp-text-secondary">12 platform variations ready for review.</p>
+                  <p className="mt-2 text-sm text-sp-text-secondary">
+                    12 platform variations ready for review.
+                    {genSource && (
+                      <span className="mt-1 block text-xs text-sp-text-muted">
+                        Engine: {
+                          genSource.startsWith('anthropic') ? 'Claude AI'
+                          : genSource.startsWith('kimi') ? `Kimi AI${genSource.includes('fallback') ? ' (fallback)' : ''}`
+                          : genSource.startsWith('openai') ? 'GPT-4o'
+                          : 'built-in templates'
+                        }
+                      </span>
+                    )}
+                  </p>
                   <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-2 text-left sm:grid-cols-3">
                     {ALL_PLATFORMS.map((p, i) => (
                       <motion.div

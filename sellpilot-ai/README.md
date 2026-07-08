@@ -39,7 +39,7 @@ Register an account, add a product with photos, then hit **Generate Listings** �
 
 - **Frontend — Vercel**: the root `vercel.json` builds `frontend/` and serves it as an SPA. Production builds talk to the Supabase Edge Function backend automatically (override with `VITE_API_URL`).
 - **Backend — Supabase Edge Function**: `supabase/functions/api/index.ts` is the same API ported to Deno, using Postgres and Supabase Storage (bucket `product-images`) instead of SQLite and local disk. Deploy with `supabase functions deploy api`. App JWTs are sent in the `x-sp-token` header because the platform gateway reserves `Authorization` for the Supabase anon key.
-- **AI**: set the `ANTHROPIC_API_KEY` secret on the Edge Function (Dashboard → Edge Functions → Secrets) to enable Claude generation; `OPENAI_API_KEY` also works. Without either, the template fallback is used.
+- **AI**: Edge Function secrets — `ANTHROPIC_API_KEY` (Claude, primary copywriter + vision), `KIMI_API_KEY` (Moonshot Kimi K2: primary engine for rewrites, automatic fallback for everything else incl. vision), `GEMINI_API_KEY` (environment-shot images, free tier), `OPENAI_API_KEY` (optional: image-edit fallback + legacy text). With no text key at all, the deterministic template fallback is used.
 - The Express backend in `backend/` remains the local-dev server (`node server.js` + Vite proxy).
 
 ## Backend API
