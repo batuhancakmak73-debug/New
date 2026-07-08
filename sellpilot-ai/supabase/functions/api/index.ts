@@ -474,21 +474,58 @@ const ASSET_SCENES: { key: string; prompt: string }[] = [
   { key: 'seasonal', prompt: 'an inviting seasonal outdoor setting appropriate for the current time of year' },
 ];
 
-async function generateEnvironmentShot(
-  imageBytes: Uint8Array,
-  mime: string,
-  productName: string,
+function fidelityPrompt(productDesc: string, scenePrompt: string): string {
+  return `These reference photos show the EXACT product being sold: ${productDesc}. Create one photorealistic marketing photo of THIS EXACT product placed in ${scenePrompt}. Critical requirements: the product must stay pixel-faithful to the reference photos — identical model, shape, proportions, colors, materials, control panels, logos, stickers, labels and condition. Do not substitute a similar product, do not redesign or restyle it, do not change its finish. No added text, no watermarks, no people.`;
+}
+
+// Primary engine: Gemini 2.5 Flash Image — best-in-class at preserving the
+// exact input product while changing the scene, with a free API tier.
+async function geminiEnvironmentShot(
+  refs: { b64: string; mime: string }[],
+  productDesc: string,
+  scene: { key: string; prompt: string }
+): Promise<string | null> {
+  const model = Deno.env.get('GEMINI_IMAGE_MODEL') || 'gemini-2.5-flash-image';
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${Deno.env.get('GEMINI_API_KEY')}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            ...refs.map((r) => ({ inline_data: { mime_type: r.mime, data: r.b64 } })),
+            { text: fidelityPrompt(productDesc, scene.prompt) },
+          ],
+        }],
+      }),
+    }
+  );
+  const data = await res.json().catch(() => ({}));
+  const part = (data.candidates?.[0]?.content?.parts || []).find(
+    (p: any) => p.inlineData?.data || p.inline_data?.data
+  );
+  const b64 = part?.inlineData?.data || part?.inline_data?.data;
+  if (!res.ok || !b64) {
+    console.error(`gemini asset ${scene.key} failed:`, data.error?.message || res.status);
+    return null;
+  }
+  return b64 as string;
+}
+
+// Fallback engine: OpenAI gpt-image-1 edits with high input fidelity.
+async function openaiEnvironmentShot(
+  refs: { bytes: Uint8Array; mime: string }[],
+  productDesc: string,
   scene: { key: string; prompt: string }
 ): Promise<string | null> {
   const form = new FormData();
   form.append('model', 'gpt-image-1');
-  form.append('image', new File([imageBytes], 'product.png', { type: mime }));
-  form.append(
-    'prompt',
-    `Place this exact ${productName} into ${scene.prompt}. Keep the product's appearance, colors, proportions and condition exactly as shown in the photo. Photorealistic professional marketing photo. No text, no watermarks, no people.`
-  );
+  for (const r of refs) form.append('image[]', new File([r.bytes], 'product.png', { type: r.mime }));
+  form.append('prompt', fidelityPrompt(productDesc, scene.prompt));
   form.append('size', '1024x1024');
-  form.append('quality', 'medium');
+  form.append('quality', 'high');
+  form.append('input_fidelity', 'high');
   const res = await fetch('https://api.openai.com/v1/images/edits', {
     method: 'POST',
     headers: { Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}` },
@@ -938,17 +975,32 @@ Return JSON with keys: headlines {version_a (urgency angle), version_b (savings 
       const { data: product } = await supabase.from('products').select('*').eq('id', productId).eq('user_id', user.id).maybeSingle();
       if (!product) return err('Product not found', 404);
       if (!product.images?.length) return err('Upload at least one product photo first', 400);
-      if (!Deno.env.get('OPENAI_API_KEY')) {
-        return err('Environment shots need the OPENAI_API_KEY secret set on the backend (OpenAI image editing)', 400);
+      const useGemini = Boolean(Deno.env.get('GEMINI_API_KEY'));
+      if (!useGemini && !Deno.env.get('OPENAI_API_KEY')) {
+        return err('Environment shots need a GEMINI_API_KEY (free at aistudio.google.com) or OPENAI_API_KEY secret on the backend', 400);
       }
 
-      const photoRes = await fetch(product.images[0]);
-      if (!photoRes.ok) return err('Could not load the product photo', 502);
-      const bytes = new Uint8Array(await photoRes.arrayBuffer());
-      const mime = photoRes.headers.get('content-type') || 'image/png';
+      // Up to 3 reference photos so the model locks onto the exact product.
+      const refs: { bytes: Uint8Array; mime: string; b64: string }[] = [];
+      for (const imgUrl of product.images.slice(0, 3)) {
+        const photoRes = await fetch(imgUrl);
+        if (!photoRes.ok) continue;
+        const bytes = new Uint8Array(await photoRes.arrayBuffer());
+        let bin = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        refs.push({ bytes, mime: photoRes.headers.get('content-type') || 'image/png', b64: btoa(bin) });
+      }
+      if (!refs.length) return err('Could not load the product photos', 502);
+
+      const productDesc = [product.brand, product.name, product.specs ? `(${String(product.specs).slice(0, 200)})` : '']
+        .filter(Boolean).join(' ');
 
       const results = await Promise.all(
-        ASSET_SCENES.map((scene) => generateEnvironmentShot(bytes, mime, product.name, scene))
+        ASSET_SCENES.map((scene) =>
+          useGemini
+            ? geminiEnvironmentShot(refs, productDesc, scene)
+            : openaiEnvironmentShot(refs, productDesc, scene)
+        )
       );
 
       const assets: { type: string; url: string }[] = [];
