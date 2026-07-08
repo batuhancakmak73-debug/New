@@ -375,8 +375,9 @@ function EnvironmentShots({ product }: { product: any }) {
       {assets.length === 0 ? (
         <div className="space-y-2">
           <p className="text-xs text-sp-text-muted">
-            Places your real product photo into 5 new scenes — studio, home, jobsite, detail spotlight
-            and seasonal. Uses OpenAI image editing (needs the OPENAI_API_KEY secret; ~60s, ~$0.20 per set).
+            Places your exact product (using up to 3 of your photos as reference) into 5 new scenes —
+            studio, home, jobsite, detail spotlight and seasonal. Works best with a GEMINI_API_KEY
+            (free at aistudio.google.com); OPENAI_API_KEY also supported. Takes ~60s.
           </p>
           <Button size="sm" variant="secondary" disabled={busy} onClick={generate}>
             <Sparkles size={13} className={busy ? 'animate-pulse' : ''} /> {busy ? 'Generating (up to a minute)…' : 'Generate 5 environment shots'}
