@@ -322,6 +322,82 @@ async function callClaudeJSON(system: string, content: string | any[], maxTokens
   return parseModelJson(extractClaudeText(data));
 }
 
+// Kimi (Moonshot AI) — OpenAI-compatible. Cheap, strong writer; used as
+// the primary engine for rewrites and the fallback for everything else.
+const KIMI_BASE = Deno.env.get('KIMI_BASE_URL') || 'https://api.moonshot.ai/v1';
+
+async function callKimiJSON(system: string, userText: string, maxTokens = 4000): Promise<Record<string, any>> {
+  const key = Deno.env.get('KIMI_API_KEY');
+  if (!key) throw new Error('no-kimi-key');
+  const res = await fetch(`${KIMI_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: Deno.env.get('KIMI_MODEL') || 'kimi-k2-0905-preview',
+      max_tokens: maxTokens,
+      temperature: 0.6,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: userText },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`Kimi API error ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  return parseModelJson(data.choices?.[0]?.message?.content || '');
+}
+
+async function callKimiVisionJSON(system: string, images: { b64: string; mime: string }[], prompt: string, maxTokens = 4000): Promise<Record<string, any>> {
+  const key = Deno.env.get('KIMI_API_KEY');
+  if (!key) throw new Error('no-kimi-key');
+  const res = await fetch(`${KIMI_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: Deno.env.get('KIMI_VISION_MODEL') || 'moonshot-v1-32k-vision-preview',
+      max_tokens: maxTokens,
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: system },
+        {
+          role: 'user',
+          content: [
+            ...images.map((i) => ({ type: 'image_url', image_url: { url: `data:${i.mime};base64,${i.b64}` } })),
+            { type: 'text', text: prompt },
+          ],
+        },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`Kimi vision error ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  return parseModelJson(data.choices?.[0]?.message?.content || '');
+}
+
+// Provider chain for text JSON tasks: Claude first (or Kimi first when
+// preferKimi), the other as automatic fallback.
+async function textAI(system: string, userText: string, maxTokens = 4000, preferKimi = false): Promise<{ out: Record<string, any>; engine: string }> {
+  const hasClaude = Boolean(Deno.env.get('ANTHROPIC_API_KEY'));
+  const hasKimi = Boolean(Deno.env.get('KIMI_API_KEY'));
+  const order = preferKimi
+    ? [['kimi', hasKimi], ['claude', hasClaude]]
+    : [['claude', hasClaude], ['kimi', hasKimi]];
+  let lastError: unknown = new Error('no-ai-key');
+  for (const [engine, available] of order as [string, boolean][]) {
+    if (!available) continue;
+    try {
+      const out = engine === 'claude'
+        ? await callClaudeJSON(system, userText, maxTokens)
+        : await callKimiJSON(system, userText, maxTokens);
+      return { out, engine };
+    } catch (e) {
+      lastError = e;
+      console.error(`${engine} failed, trying next engine:`, e);
+    }
+  }
+  throw lastError;
+}
+
 async function saveAnalysis(productId: number, kind: string, data: unknown) {
   await supabase.from('ai_analyses').upsert(
     { product_id: productId, kind, data },
@@ -832,8 +908,19 @@ Deno.serve(async (req) => {
       let content: Record<string, any>;
       let source = 'anthropic';
       try {
-        if (Deno.env.get('ANTHROPIC_API_KEY')) content = await callAnthropic(product);
-        else if (Deno.env.get('OPENAI_API_KEY')) { content = await callOpenAI(product); source = 'openai'; }
+        if (Deno.env.get('ANTHROPIC_API_KEY')) {
+          try {
+            content = await callAnthropic(product);
+          } catch (e) {
+            if (!Deno.env.get('KIMI_API_KEY')) throw e;
+            console.error('Claude failed, falling back to Kimi:', e);
+            content = await callKimiJSON(SYSTEM_PROMPT, buildUserPrompt(product), 8000);
+            source = 'kimi-fallback';
+          }
+        } else if (Deno.env.get('KIMI_API_KEY')) {
+          content = await callKimiJSON(SYSTEM_PROMPT, buildUserPrompt(product), 8000);
+          source = 'kimi';
+        } else if (Deno.env.get('OPENAI_API_KEY')) { content = await callOpenAI(product); source = 'openai'; }
         else { content = generateLocally(product); source = 'template'; }
       } catch (e) {
         console.error('AI generation failed, using local fallback:', e);
@@ -882,15 +969,26 @@ Deno.serve(async (req) => {
         }
       }
       if (!blocks.length) return err('No images received', 400);
-      if (!Deno.env.get('ANTHROPIC_API_KEY')) {
-        return err('Photo analysis needs the ANTHROPIC_API_KEY secret set on the backend', 400);
+      const hasClaudeKey = Boolean(Deno.env.get('ANTHROPIC_API_KEY'));
+      const hasKimiKey = Boolean(Deno.env.get('KIMI_API_KEY'));
+      if (!hasClaudeKey && !hasKimiKey) {
+        return err('Photo analysis needs the ANTHROPIC_API_KEY (or KIMI_API_KEY) secret set on the backend', 400);
       }
+      const visionSystem = 'You are an expert product appraiser for marketplace resale. Be precise and honest.';
+      const kimiImages = blocks.map((b: any) => ({ b64: b.source.data, mime: b.source.media_type }));
       try {
-        const analysis = await callClaudeJSON(
-          'You are an expert product appraiser for marketplace resale. Be precise and honest.',
-          [...blocks, { type: 'text', text: VISION_PROMPT }],
-          6000
-        );
+        let analysis: Record<string, any>;
+        if (hasClaudeKey) {
+          try {
+            analysis = await callClaudeJSON(visionSystem, [...blocks, { type: 'text', text: VISION_PROMPT }], 6000);
+          } catch (e) {
+            if (!hasKimiKey) throw e;
+            console.error('Claude vision failed, falling back to Kimi vision:', e);
+            analysis = await callKimiVisionJSON(visionSystem, kimiImages, VISION_PROMPT, 6000);
+          }
+        } else {
+          analysis = await callKimiVisionJSON(visionSystem, kimiImages, VISION_PROMPT, 6000);
+        }
         return json({ analysis });
       } catch (e) {
         return err(e instanceof Error ? e.message : 'Vision analysis failed', 502);
@@ -917,14 +1015,15 @@ Deno.serve(async (req) => {
         }
         let analysis: Record<string, any>;
         try {
-          analysis = await callClaudeJSON(
+          const pricingRun = await textAI(
             'You are a marketplace pricing analyst. Return ONLY valid JSON.',
             `Product: ${product.brand || ''} ${product.name}, condition ${product.condition || 'used'}, retail ~$${product.retail_price || 'unknown'}, location ${product.location || 'US'}.
 Live eBay comps (title | price | condition): ${comps.slice(0, 20).map((c) => `${c.title} | $${c.price} | ${c.condition}`).join('\n') || 'none available'}
 
 Return JSON: {"market_low":n,"market_high":n,"market_average":n,"market_median":n,"active_count":n,"demand_level":"high|medium|low","price_trend":"rising|falling|stable","suggested_asking_price":n (aim ~65% of median for a quick sale),"floor_price":n,"bulk_discounts":{"3+":"10%","5+":"15%","10+":"20%"},"positioning":"price_leader|value_priced","est_days_to_sell":"...","urgency_discount":"...","competitor_snapshot":[{"title":"...","price":n}],"reasoning":"1-2 sentences"}`
           );
-          analysis.source = comps.length ? 'ebay-live+claude' : 'claude';
+          analysis = pricingRun.out;
+          analysis.source = comps.length ? `ebay-live+${pricingRun.engine}` : pricingRun.engine;
           if (comps.length && !analysis.competitor_snapshot?.length) {
             analysis.competitor_snapshot = comps.slice(0, 6).map((c) => ({ title: c.title.slice(0, 60), price: c.price, url: c.url }));
           }
@@ -938,13 +1037,14 @@ Return JSON: {"market_low":n,"market_high":n,"market_average":n,"market_median":
       if (which === 'discover-groups') {
         let result: Record<string, any>;
         try {
-          result = await callClaudeJSON(
+          const groupsRun = await textAI(
             'You are an expert at Facebook group marketing for local resale. Return ONLY valid JSON.',
             `Product: "${product.name}" in category "${product.category || 'general'}", located in "${product.location || 'US'}".
 Find the best Facebook groups to post in. Return JSON {"groups":[...8-12 items...]} where each item has: group_name (realistic searchable name), category, estimated_members, relevance_score (1-10), best_posting_time, post_type, rules_to_follow, words_to_avoid, engagement_tip.
 Mix: 2-3 local buy/sell groups for the location, 2-3 category-specific groups, 1-2 community groups, 1 Turkish community group if relevant, 1 wholesale/bulk group. Sort by relevance_score descending. Add "note":"verify each group by searching its name on Facebook".`
           );
-          result.source = 'claude';
+          result = groupsRun.out;
+          result.source = groupsRun.engine;
         } catch {
           result = groupsFallback(product);
         }
@@ -955,12 +1055,13 @@ Mix: 2-3 local buy/sell groups for the location, 2-3 category-specific groups, 1
       // engagement-strategy
       let strategy: Record<string, any>;
       try {
-        strategy = await callClaudeJSON(
+        const strategyRun = await textAI(
           'You are a social media engagement expert specializing in marketplace selling. Return ONLY valid JSON.',
           `Product: ${product.name} (${product.category || 'general'}), condition ${product.condition || 'used'}, location ${product.location || 'US'}, quantity ${product.quantity}.
 Return JSON with keys: headlines {version_a (urgency angle), version_b (savings angle), version_c (quality angle), version_d (scarcity angle), best_for}, optimal_posting {best_days[], best_times[], frequency, avoid_days[]}, hashtag_set {high_volume[], niche[], local[], recommended_count}, content_hooks[3], visual_strategy {hero_image, photo_2, photo_3, photo_4, photo_5}, engagement_tactics[3], response_templates {first_hour, price_inquiry, lowball_offer}.`
         );
-        strategy.source = 'claude';
+        strategy = strategyRun.out;
+        strategy.source = strategyRun.engine;
       } catch {
         strategy = engagementFallback(product);
       }
@@ -974,13 +1075,13 @@ Return JSON with keys: headlines {version_a (urgency angle), version_b (savings 
       if (!listing_id) return err('listing_id is required', 400);
       const listing = await ownedListing(String(listing_id), user.id);
       if (!listing) return err('Listing not found', 404);
-      if (!Deno.env.get('ANTHROPIC_API_KEY')) {
-        return err('AI rewrite needs the ANTHROPIC_API_KEY secret set on the backend', 400);
+      if (!Deno.env.get('ANTHROPIC_API_KEY') && !Deno.env.get('KIMI_API_KEY')) {
+        return err('AI rewrite needs the ANTHROPIC_API_KEY or KIMI_API_KEY secret set on the backend', 400);
       }
       const { data: product } = await supabase.from('products').select('*').eq('id', listing.product_id).single();
       const maxTitle = listing.platform === 'ebay' ? 80 : 150;
       try {
-        const out = await callClaudeJSON(
+        const { out } = await textAI(
           SYSTEM_PROMPT + ' Return ONLY a valid JSON object {"title":"...","description":"..."} with no commentary.',
           `Platform: ${listing.platform}. Product facts (do not change them): ${product.brand || ''} ${product.name}, condition ${product.condition || 'used'}, quantity ${product.quantity}, price $${listing.price}, location ${product.location || ''}. Specs: ${product.specs || 'n/a'}.
 
@@ -989,7 +1090,9 @@ Current description:
 ${listing.description}
 
 Rewrite instruction: ${instruction || 'improve clarity and conversion'}.
-Keep every fact accurate. Title max ${maxTitle} characters. Keep the platform's style.`
+Keep every fact accurate. Title max ${maxTitle} characters. Keep the platform's style.`,
+          3000,
+          true
         );
         const title = String(out.title || listing.title).slice(0, maxTitle);
         const description = String(out.description || listing.description);
