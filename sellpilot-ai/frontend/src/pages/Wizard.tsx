@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { PlatformBadge } from '@/components/PlatformBadge';
 import {
-  BannerStudioPanel, EngagementOptimizerPanel, GroupDiscoveryPanel, PricingIntelligencePanel,
+  BannerStudioPanel, EngagementOptimizerPanel, GroupDiscoveryPanel, PricingIntelligencePanel, RewriteBar,
 } from '@/components/WizardIntelligence';
 import { cn, formatMoney, imageUrl, PLATFORM_META, PUBLISHABLE_PLATFORMS } from '@/lib/utils';
 
@@ -397,6 +397,14 @@ export default function Wizard() {
                       className="min-h-[300px] font-body leading-relaxed"
                       value={activeListing.description || ''}
                       onChange={(e) => updateListing('description', e.target.value)}
+                    />
+                    <RewriteBar
+                      listingId={activeListing.id}
+                      onRewritten={(l) =>
+                        setListings((list) =>
+                          list.map((x) => (x.id === l.id ? { ...x, title: l.title, description: l.description } : x))
+                        )
+                      }
                     />
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">

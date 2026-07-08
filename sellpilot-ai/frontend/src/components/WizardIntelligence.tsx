@@ -261,6 +261,56 @@ export function EngagementOptimizerPanel({ product }: { product: any }) {
   );
 }
 
+// ------------------------------------------- AI copy rewrite (Ad Studio)
+
+const REWRITE_OPTIONS = [
+  'Improve clarity and conversion',
+  'Make it more professional',
+  'Make it friendlier and warmer',
+  'Add honest urgency (no hype)',
+  'Make it shorter and punchier',
+  'Make it longer with more detail',
+];
+
+export function RewriteBar({
+  listingId, onRewritten,
+}: {
+  listingId: number;
+  onRewritten: (listing: any) => void;
+}) {
+  const { toast } = useToast();
+  const [instruction, setInstruction] = useState(REWRITE_OPTIONS[0]);
+  const [busy, setBusy] = useState(false);
+
+  async function run() {
+    setBusy(true);
+    try {
+      const res = await api.post('/ai/rewrite', { listing_id: listingId, instruction });
+      onRewritten(res.data);
+      toast('success', 'Rewritten with AI', instruction);
+    } catch (err) {
+      toast('error', 'Rewrite failed', apiError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <select
+        value={instruction}
+        onChange={(e) => setInstruction(e.target.value)}
+        className="h-8 rounded-lg border border-sp-active/60 bg-sp-input px-2 text-xs text-sp-text focus:border-sp-primary focus:outline-none"
+      >
+        {REWRITE_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+      </select>
+      <Button size="sm" variant="secondary" disabled={busy} onClick={run}>
+        <Sparkles size={12} className={busy ? 'animate-pulse' : ''} /> {busy ? 'Rewriting…' : 'Rewrite with AI'}
+      </Button>
+    </div>
+  );
+}
+
 // --------------------------------- Module 5: banner studio (real photos)
 
 // Kept to 2 banners per product (user preference) — value + bulk cover
@@ -278,10 +328,17 @@ const SCENE_LABELS: Record<string, string> = {
   seasonal: 'Seasonal Scene',
 };
 
+const BANNER_FONTS = [
+  { label: 'Space Grotesk (modern)', value: '"Space Grotesk", sans-serif' },
+  { label: 'Inter (clean)', value: 'Inter, sans-serif' },
+  { label: 'Georgia (classic)', value: 'Georgia, serif' },
+];
+
 export function BannerStudioPanel({ product, pricing }: { product: any; pricing: any }) {
   const { toast } = useToast();
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [style, setStyle] = useState({ accent: '', font: BANNER_FONTS[0].value, headline: '', priceText: '' });
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const ask = pricing?.suggested_ask || pricing?.suggested_asking_price || Math.round((product?.retail_price || 100) * 0.65);
@@ -294,13 +351,19 @@ export function BannerStudioPanel({ product, pricing }: { product: any; pricing:
       const img = photo ? await loadImage(photo) : null;
       const out: Record<string, string> = {};
       for (const banner of BANNERS) {
-        out[banner.key] = drawBanner(canvasRef.current!, img, banner, {
-          title: product.name,
-          price: `$${ask}`,
-          retail: retail ? `Retail ~$${retail}` : '',
-          location: product.location || '',
-          quantity: product.quantity || 1,
-        });
+        out[banner.key] = drawBanner(
+          canvasRef.current!,
+          img,
+          { ...banner, accent: style.accent || banner.accent },
+          {
+            title: style.headline || product.name,
+            price: style.priceText || `$${ask}`,
+            retail: retail ? `Retail ~$${retail}` : '',
+            location: product.location || '',
+            quantity: product.quantity || 1,
+          },
+          style.font
+        );
       }
       setUrls(out);
     } catch (err) {
@@ -324,19 +387,57 @@ export function BannerStudioPanel({ product, pricing }: { product: any; pricing:
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
-          {BANNERS.map((b) => (
-            <div key={b.key} className="overflow-hidden rounded-lg border border-sp-active/40">
-              <img src={urls[b.key]} alt={b.label} className="w-full" />
-              <div className="flex items-center justify-between p-2">
-                <span className="text-[11px] text-sp-text-secondary">{b.label}</span>
-                <a href={urls[b.key]} download={`${b.key}-banner.png`} className="text-sp-primary-light hover:text-sp-primary">
-                  <Download size={13} />
-                </a>
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            {BANNERS.map((b) => (
+              <div key={b.key} className="overflow-hidden rounded-lg border border-sp-active/40">
+                <img src={urls[b.key]} alt={b.label} className="w-full" />
+                <div className="flex items-center justify-between p-2">
+                  <span className="text-[11px] text-sp-text-secondary">{b.label}</span>
+                  <a href={urls[b.key]} download={`${b.key}-banner.png`} className="text-sp-primary-light hover:text-sp-primary">
+                    <Download size={13} />
+                  </a>
+                </div>
               </div>
+            ))}
+          </div>
+          <div className="mt-3 space-y-2 rounded-lg border border-sp-active/40 bg-sp-input/40 p-3">
+            <div className="text-xs font-semibold text-sp-text-secondary">Customize banners</div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex items-center gap-2 text-xs text-sp-text-secondary">
+                Color
+                <input
+                  type="color"
+                  value={style.accent || '#5B6EF5'}
+                  onChange={(e) => setStyle({ ...style, accent: e.target.value })}
+                  className="h-7 w-10 cursor-pointer rounded border border-sp-active/60 bg-transparent"
+                />
+              </label>
+              <select
+                value={style.font}
+                onChange={(e) => setStyle({ ...style, font: e.target.value })}
+                className="h-8 rounded-lg border border-sp-active/60 bg-sp-input px-2 text-xs text-sp-text"
+              >
+                {BANNER_FONTS.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
+              </select>
+              <input
+                placeholder="Custom headline (optional)"
+                value={style.headline}
+                onChange={(e) => setStyle({ ...style, headline: e.target.value })}
+                className="col-span-2 h-8 rounded-lg border border-sp-active/60 bg-sp-input px-2 text-xs text-sp-text placeholder:text-sp-text-muted"
+              />
+              <input
+                placeholder={`Price text (default $${ask})`}
+                value={style.priceText}
+                onChange={(e) => setStyle({ ...style, priceText: e.target.value })}
+                className="col-span-2 h-8 rounded-lg border border-sp-active/60 bg-sp-input px-2 text-xs text-sp-text placeholder:text-sp-text-muted"
+              />
             </div>
-          ))}
-        </div>
+            <Button size="sm" variant="secondary" disabled={busy} onClick={generate}>
+              {busy ? 'Rendering…' : 'Apply & regenerate'}
+            </Button>
+          </div>
+        </>
       )}
       <EnvironmentShots product={product} />
     </Panel>
@@ -423,8 +524,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 function drawBanner(
   canvas: HTMLCanvasElement,
   img: HTMLImageElement | null,
-  banner: (typeof BANNERS)[number],
-  text: { title: string; price: string; retail: string; location: string; quantity: number }
+  banner: { key: string; label: string; accent: string },
+  text: { title: string; price: string; retail: string; location: string; quantity: number },
+  font = '"Space Grotesk", sans-serif'
 ): string {
   const ctx = canvas.getContext('2d')!;
   const W = 1200, H = 630;
@@ -471,7 +573,7 @@ function drawBanner(
 
   // Title (wrapped, max 3 lines)
   ctx.fillStyle = '#F0F1F5';
-  ctx.font = '700 52px "Space Grotesk", sans-serif';
+  ctx.font = `700 52px ${font}`;
   const words = text.title.split(' ');
   let line = '', y = 170;
   const maxWidth = img ? W * 0.45 : W - 100;
@@ -499,7 +601,7 @@ function drawBanner(
     ctx.lineTo(50 + w, y + 80);
     ctx.stroke();
   }
-  ctx.font = '700 74px "Space Grotesk", sans-serif';
+  ctx.font = `700 74px ${font}`;
   ctx.fillStyle = banner.accent;
   ctx.fillText(text.price, 50, y + 175);
 
