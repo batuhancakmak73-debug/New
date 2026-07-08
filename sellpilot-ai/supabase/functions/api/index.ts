@@ -446,6 +446,46 @@ function engagementFallback(product: any): Record<string, any> {
   };
 }
 
+// ----------------------------------------- AI environment shots (image edit)
+// Uses OpenAI gpt-image-1 EDITS so the user's real product photo is placed
+// into new scenes — the product itself stays true to the original photo.
+
+const ASSET_SCENES: { key: string; prompt: string }[] = [
+  { key: 'hero', prompt: 'a clean white studio background with soft professional lighting and subtle shadow' },
+  { key: 'lifestyle', prompt: 'a bright, modern home interior where this product would naturally be used, warm natural light' },
+  { key: 'jobsite', prompt: 'a professional contractor jobsite or clean warehouse setting' },
+  { key: 'detail', prompt: 'a dramatic close-up presentation on a dark surface with focused lighting that highlights its quality' },
+  { key: 'seasonal', prompt: 'an inviting seasonal outdoor setting appropriate for the current time of year' },
+];
+
+async function generateEnvironmentShot(
+  imageBytes: Uint8Array,
+  mime: string,
+  productName: string,
+  scene: { key: string; prompt: string }
+): Promise<string | null> {
+  const form = new FormData();
+  form.append('model', 'gpt-image-1');
+  form.append('image', new File([imageBytes], 'product.png', { type: mime }));
+  form.append(
+    'prompt',
+    `Place this exact ${productName} into ${scene.prompt}. Keep the product's appearance, colors, proportions and condition exactly as shown in the photo. Photorealistic professional marketing photo. No text, no watermarks, no people.`
+  );
+  form.append('size', '1024x1024');
+  form.append('quality', 'medium');
+  const res = await fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}` },
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.data?.[0]?.b64_json) {
+    console.error(`asset ${scene.key} failed:`, data.error?.message || res.status);
+    return null;
+  }
+  return data.data[0].b64_json as string;
+}
+
 // -------------------------------------------------- marketplace auto-posting
 
 const xml = (s: unknown) =>
@@ -872,6 +912,45 @@ Return JSON with keys: headlines {version_a (urgency angle), version_b (savings 
       }
       await saveAnalysis(product.id, 'engagement', strategy);
       return json(strategy);
+    }
+
+    // ---- AI intelligence: environment shots from the real product photo
+    if (path === '/ai/generate-assets' && method === 'POST') {
+      const { productId } = await req.json().catch(() => ({}));
+      if (!productId) return err('productId is required', 400);
+      const { data: product } = await supabase.from('products').select('*').eq('id', productId).eq('user_id', user.id).maybeSingle();
+      if (!product) return err('Product not found', 404);
+      if (!product.images?.length) return err('Upload at least one product photo first', 400);
+      if (!Deno.env.get('OPENAI_API_KEY')) {
+        return err('Environment shots need the OPENAI_API_KEY secret set on the backend (OpenAI image editing)', 400);
+      }
+
+      const photoRes = await fetch(product.images[0]);
+      if (!photoRes.ok) return err('Could not load the product photo', 502);
+      const bytes = new Uint8Array(await photoRes.arrayBuffer());
+      const mime = photoRes.headers.get('content-type') || 'image/png';
+
+      const results = await Promise.all(
+        ASSET_SCENES.map((scene) => generateEnvironmentShot(bytes, mime, product.name, scene))
+      );
+
+      const assets: { type: string; url: string }[] = [];
+      for (let i = 0; i < ASSET_SCENES.length; i++) {
+        const b64 = results[i];
+        if (!b64) continue;
+        const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const path = `${user.id}/generated/${product.id}-${ASSET_SCENES[i].key}-${Date.now()}.png`;
+        const { error } = await supabase.storage.from('product-images').upload(path, bin, { contentType: 'image/png' });
+        if (!error) {
+          assets.push({
+            type: ASSET_SCENES[i].key,
+            url: supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl,
+          });
+        }
+      }
+      if (!assets.length) return err('Image generation failed for every scene — check the OpenAI key and try again', 502);
+      await saveAnalysis(product.id, 'assets', { assets, generated_at: new Date().toISOString() });
+      return json({ assets });
     }
 
     // ---- cached analyses
