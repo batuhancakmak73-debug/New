@@ -268,7 +268,16 @@ const BANNERS = [
   { key: 'bulk', label: 'Bulk Deal', accent: '#34D399' },
   { key: 'contractor', label: 'Contractor / Pro', accent: '#FBBF24' },
   { key: 'fast', label: 'Fast Sale', accent: '#F87171' },
+  { key: 'seasonal', label: 'Seasonal', accent: '#60A5FA' },
 ] as const;
+
+const SCENE_LABELS: Record<string, string> = {
+  hero: 'Studio Hero',
+  lifestyle: 'Home Lifestyle',
+  jobsite: 'Jobsite / Warehouse',
+  detail: 'Detail Spotlight',
+  seasonal: 'Seasonal Scene',
+};
 
 export function BannerStudioPanel({ product, pricing }: { product: any; pricing: any }) {
   const { toast } = useToast();
@@ -308,8 +317,8 @@ export function BannerStudioPanel({ product, pricing }: { product: any; pricing:
       {Object.keys(urls).length === 0 ? (
         <div className="space-y-2">
           <p className="text-xs text-sp-text-secondary">
-            Generate 4 ready-to-post banners (1200×630) composed from your actual product photo — value,
-            bulk, contractor and fast-sale versions.
+            Generate 5 ready-to-post banners (1200×630) composed from your actual product photo — value,
+            bulk, contractor, fast-sale and seasonal versions.
           </p>
           <Button size="sm" disabled={busy} onClick={generate}>
             <Sparkles size={13} className={busy ? 'animate-pulse' : ''} /> {busy ? 'Rendering…' : 'Generate banners'}
@@ -330,7 +339,74 @@ export function BannerStudioPanel({ product, pricing }: { product: any; pricing:
           ))}
         </div>
       )}
+      <EnvironmentShots product={product} />
     </Panel>
+  );
+}
+
+// AI environment shots: the real product photo edited into 5 new scenes.
+function EnvironmentShots({ product }: { product: any }) {
+  const { toast } = useToast();
+  const [assets, setAssets] = useState<{ type: string; url: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    api.get(`/ai/analyses?product_id=${product.id}`)
+      .then((res) => res.data.assets?.assets && setAssets(res.data.assets.assets))
+      .catch(() => {});
+  }, [product?.id]);
+
+  async function generate() {
+    setBusy(true);
+    try {
+      const res = await api.post('/ai/generate-assets', { productId: product.id });
+      setAssets(res.data.assets);
+      toast('success', `${res.data.assets.length} environment shots ready`);
+    } catch (err) {
+      toast('error', 'Shot generation failed', apiError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 border-t border-sp-active/30 pt-4">
+      <div className="mb-2 text-xs font-semibold text-sp-text-secondary">AI environment shots</div>
+      {assets.length === 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs text-sp-text-muted">
+            Places your real product photo into 5 new scenes — studio, home, jobsite, detail spotlight
+            and seasonal. Uses OpenAI image editing (needs the OPENAI_API_KEY secret; ~60s, ~$0.20 per set).
+          </p>
+          <Button size="sm" variant="secondary" disabled={busy} onClick={generate}>
+            <Sparkles size={13} className={busy ? 'animate-pulse' : ''} /> {busy ? 'Generating (up to a minute)…' : 'Generate 5 environment shots'}
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            {assets.map((a) => (
+              <div key={a.type} className="overflow-hidden rounded-lg border border-sp-active/40">
+                <img src={a.url} alt={a.type} className="w-full" />
+                <div className="flex items-center justify-between p-2">
+                  <span className="text-[11px] text-sp-text-secondary">{SCENE_LABELS[a.type] || a.type}</span>
+                  <a href={a.url} download target="_blank" rel="noreferrer" className="text-sp-primary-light hover:text-sp-primary">
+                    <Download size={13} />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-[10px] italic text-sp-text-muted">
+              AI-composed scenes from your real photo — keep at least one untouched photo in every listing.
+            </p>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={generate}>Regenerate</Button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -387,6 +463,7 @@ function drawBanner(
     bulk: `Bulk pricing · ${text.quantity}+ available`,
     contractor: 'Contractor pricing available',
     fast: 'Priced to move this week',
+    seasonal: 'Seasonal special · limited stock',
   };
   ctx.font = '600 26px Inter, sans-serif';
   ctx.fillStyle = banner.accent;
