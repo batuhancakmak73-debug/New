@@ -263,12 +263,11 @@ export function EngagementOptimizerPanel({ product }: { product: any }) {
 
 // --------------------------------- Module 5: banner studio (real photos)
 
+// Kept to 2 banners per product (user preference) — value + bulk cover
+// the two main ad angles; the drawing code still supports all variants.
 const BANNERS = [
   { key: 'value', label: 'Value Banner', accent: '#5B6EF5' },
   { key: 'bulk', label: 'Bulk Deal', accent: '#34D399' },
-  { key: 'contractor', label: 'Contractor / Pro', accent: '#FBBF24' },
-  { key: 'fast', label: 'Fast Sale', accent: '#F87171' },
-  { key: 'seasonal', label: 'Seasonal', accent: '#60A5FA' },
 ] as const;
 
 const SCENE_LABELS: Record<string, string> = {
@@ -317,8 +316,8 @@ export function BannerStudioPanel({ product, pricing }: { product: any; pricing:
       {Object.keys(urls).length === 0 ? (
         <div className="space-y-2">
           <p className="text-xs text-sp-text-secondary">
-            Generate 5 ready-to-post banners (1200×630) composed from your actual product photo — value,
-            bulk, contractor, fast-sale and seasonal versions.
+            Generate 2 ready-to-post banners (1200×630) composed from your actual product photo — a
+            value banner and a bulk-deal banner.
           </p>
           <Button size="sm" disabled={busy} onClick={generate}>
             <Sparkles size={13} className={busy ? 'animate-pulse' : ''} /> {busy ? 'Rendering…' : 'Generate banners'}
